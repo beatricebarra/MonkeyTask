@@ -17,10 +17,46 @@
 #include "monkeytask_test_1.h"
 
 
+bool closed_loop=true;
+bool True_robot=true;
+bool Position_of_the_robot_recieved=false;
+
 monkeytask_test_1::monkeytask_test_1()
 :RobotInterface(){
 }
 monkeytask_test_1::~monkeytask_test_1(){
+}
+
+void monkeytask_test_1::chatterCallback_position(const sensor_msgs::JointState & msg)
+{
+	if (True_robot)
+	{
+		JointPos_handle(0)=msg.position[0];
+		JointPos_handle(1)=msg.position[1];
+		JointPos_handle(2)=msg.position[2];
+		JointPos_handle(3)=msg.position[3];
+		JointPos_handle(4)=msg.position[4];
+		JointPos_handle(5)=msg.position[5];
+		JointPos_handle(6)=msg.position[6];
+		cJointPos=JointPos_handle;
+		Position_of_the_robot_recieved=true;
+	}
+}
+
+void monkeytask_test_1::Send_Postion_To_Robot(Vector Position)
+{
+	if (True_robot)
+	{
+		kuka_fri_bridge::JointStateImpedance msg;
+		msg.position.resize(KUKA_DOF);
+		msg.stiffness.resize(KUKA_DOF);
+		for (int i=0; i<KUKA_DOF;i=i+1)
+		{
+			msg.position[i]  = Position(i);
+			msg.stiffness[i] = 2000;
+		}
+		pub_command_robot_real.publish(msg);
+	}
 }
 
 RobotInterface::Status monkeytask_test_1::RobotInit(){
@@ -32,6 +68,7 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	cJointTargetVel.Resize(KUKA_DOF);
 	fJointTargetPos.Resize(KUKA_DOF);
 	cJointPos.Resize(KUKA_DOF);
+	JointPos_handle.Resize(KUKA_DOF);
 	cJointVel.Resize(KUKA_DOF);
 
 	// Resizing the cartesian positions and direction vectors
@@ -74,8 +111,6 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	lTargetPos.Resize(3);
 	lTDirection.Resize(3);
 
-	// FINGER_DOF is the tool?
-	mJointPosAll.Resize(KUKA_DOF+FINGER_DOF);
 
 
 	// for inverse kinematics
@@ -250,6 +285,13 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	lTargetDirZ(1)=0;
 	lTargetDirZ(2)=0;*/
 
+	mRobot->SetControlMode(Robot::CTRLMODE_POSITION);
+	ros::NodeHandle *n = mRobot->InitializeROS();
+	if (True_robot)
+	{
+		pub_command_robot_real =  n->advertise<kuka_fri_bridge::JointStateImpedance>("/real_r_arm_controller/joint_imp_cmd", 3);
+		sub_position_robot = n->subscribe("/real_r_arm_pos_controller/joint_states", 3, & monkeytask_test_1::chatterCallback_position,this);
+	}
 
 	return STATUS_OK;
 }
@@ -261,13 +303,25 @@ RobotInterface::Status monkeytask_test_1::RobotStart(){
 	// Setting the position of all joints to 0
 	//mJointPosAll.Zero();
 	cJointPos.Zero();
+	if (True_robot)
+	{
+	while (Position_of_the_robot_recieved==false)
+	{
+		ros::spinOnce();
+	}
+	}
+	else
+	{
+		mSensorsGroup.ReadSensors();
+		cJointPos = mSensorsGroup.GetJointAngles();
+	}
 
 	/*For real robot experiment!*/
 	/*	while (mJointPosAll.Norm()==0)
 	{*/
-	mSensorsGroup.ReadSensors();
+	//mSensorsGroup.ReadSensors();
 	//mJointPosAll = mSensorsGroup.GetJointAngles();
-	cJointPos = mSensorsGroup.GetJointAngles();
+	//cJointPos = mSensorsGroup.GetJointAngles();
 	//	}
 	//Writing the joint position in the kinematic chain
 	//mSKinematicChain->setJoints(mJointPosAll.Array());
@@ -295,7 +349,7 @@ RobotInterface::Status monkeytask_test_1::RobotStop(){
 }
 RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 
-
+	ros::spinOnce();
 
 	//Local variables
 	float distance2target;
@@ -311,9 +365,9 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 	mSKinematicChain->getEndDirAxis(AXIS_X, cCartDirX.Array());
 	mSKinematicChain->getEndDirAxis(AXIS_Y, cCartDirY.Array());
 	mSKinematicChain->getEndDirAxis(AXIS_Z, cCartDirZ.Array());
-	cCartDirX.Print("cCartDirX");
-	cCartDirY.Print("cCartDirY");
-	cCartDirZ.Print("cCartDirZ");
+//	cCartDirX.Print("cCartDirX");
+//	cCartDirY.Print("cCartDirY");
+//	cCartDirZ.Print("cCartDirZ");
 
 
 	//Setting different planners for different commands
@@ -436,8 +490,8 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		cCartTargetPos=cCartPos + cCartTargetVel.GetSubVector(0,3)*_dt;
 
 		mTargetVelocity.SetSubVector(0, (cCartTargetPos -cCartPos ) / _dt);
-		mTargetVelocity.SetSubVector(3, (cCartTargetDirY));
-		mTargetVelocity.SetSubVector(6, (cCartTargetDirZ));
+		mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY)/ _dt);
+		mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ)/ _dt);
 
 		//mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY) / _dt );
 		//mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ) / _dt );
@@ -469,7 +523,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 
 		//Updating the variables for current cartesian and joint position for next cycle
 		mSKinematicChain->getEndPos(cCartPos.Array());
-		mSKinematicChain->getJoints(cJointPos.Array());
+	//	mSKinematicChain->getJoints(cJointPos.Array());
 		//Reading the reached position
 /*		mSKinematicChain->getEndPos(lPos.Array());
 
@@ -482,7 +536,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		//distance2target = sqrt(pow(fCartTargetPos[0]-cCartPos[0], 2) + pow(fCartTargetPos[1]-cCartPos[1], 2) +pow(fCartTargetPos[2]-cCartPos[2], 2));
 		distance2target_x = fCartTargetPos[0]-cCartPos[0];
 
-		if(abs(distance2target)>10)
+		if(abs(distance2target)>0.01)
 			mCommand = COMMAND_Back;
 
 		break;
@@ -495,21 +549,21 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		//My implementation
 		cout<<"IN PLANNER JOINT"<<endl;
 		//Output joint values
-		mSKinematicChain->getJoints(cJointPos.Array());
+	//	mSKinematicChain->getJoints(cJointPos.Array());
 		cJointPos.Print("cJointPos");
 
 		//Update joint command
 		cJointTargetPos = cJointPos + (fJointTargetPos-cJointPos)*_dt*10;
 
-		J_distance2P0 = cJointTargetPos-jP0;
+		J_distance2P0 = cJointTargetPos-fJointTargetPos;
 		if (J_distance2P0.Norm() < 0.01){
 			mSKinematicChain->getEndPos(fCartTargetPos.Array());
-			mCommand=COMMAND_Back;// when it gets very close to the target position it passes to behave as a spring
+			mCommand=COMMAND_spring;// when it gets very close to the target position it passes to behave as a spring
 
 		}
-		J_distance2Back = cJointTargetPos-jBack;
-		if (J_distance2Back.Norm() < 0.01)
-					mCommand=COMMAND_Home;// when it gets very close to the target position it passes to behave as a spring
+//		J_distance2Back = cJointTargetPos-BackPosition;
+//		if (J_distance2Back.Norm() < 0.01 && mCommand == COMMAND_Back)
+//					mCommand=COMMAND_Home;// when it gets very close to the target position it passes to behave as a spring
 
 		break;
 
@@ -522,16 +576,25 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 }
 RobotInterface::Status monkeytask_test_1::RobotUpdateCore(){
 
+	ros::spinOnce();
 
 	// Read current Joints position and Sensors values
-	mSensorsGroup.ReadSensors();
+
 	//mJointPosAll    = mSensorsGroup.GetJointAngles();
-	cJointPos = mSensorsGroup.GetJointAngles();
+
+	if (True_robot==false)
+	{
+		mSensorsGroup.ReadSensors();
+		cJointPos = mSensorsGroup.GetJointAngles();
+	}
+
 	// Setting robot in position control
 	if(mRobot->GetControlMode()!=Robot::CTRLMODE_POSITION)
 		mRobot->SetControlMode(Robot::CTRLMODE_POSITION);
 
 	// Write joint values stored in mJointTargetPos in the simulator
+	cJointTargetPos.Print("cJointTargetPos");
+	Send_Postion_To_Robot(cJointTargetPos);
 	mActuatorsGroup.SetJointAngles(cJointTargetPos);
 	mActuatorsGroup.WriteActuators();
 	mKinematicChain.Update();
@@ -539,6 +602,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdateCore(){
 
 	return STATUS_OK;
 }
+
 int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<string> &args){
 
 	cout<<"Write your command"<<endl;

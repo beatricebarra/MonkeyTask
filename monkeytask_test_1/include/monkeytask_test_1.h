@@ -26,6 +26,8 @@
 #include "RobotLib/InverseDynamics.h"
 #include "RobotLib/KinematicChain.h"
 #include "sKinematics.h"
+#include "sensor_msgs/JointState.h"
+#include "kuka_fri_bridge/JointStateImpedance.h"
 
 #include "eigen3/Eigen/Dense"
 #include "sg_filter.h"
@@ -84,6 +86,14 @@ public:
 	virtual int                 RespondToConsoleCommand(const string cmd, const vector<string> &args);
 
 private:
+
+	void 						Send_Postion_To_Robot(Vector Position);
+
+	ros::Publisher	 				pub_command_robot_real;
+	ros::Subscriber 				sub_position_robot;
+
+
+	void 						chatterCallback_position(const sensor_msgs::JointState & msg);
 	sKinematics                 *mSKinematicChain;
 
 	RevoluteJointSensorGroup    mSensorsGroup;
@@ -93,11 +103,12 @@ private:
 	IKGroupSolver               mIKSolver;
 
 	int                         mEndEffectorId;
-	Vector                      mJointPos;
-	Vector                      mJointPosAll;
-	Vector                      mJointDesPos;
-	Vector                      mJointTargetPos;
-	Vector						mJointDesVel;
+
+//	Vector                      mJointPos;
+//	Vector                      mJointPosAll;
+//	Vector                      mJointDesPos;
+//	Vector                      mJointTargetPos;
+//	Vector						mJointDesVel;
 
 
 	// My set of variables
@@ -120,6 +131,7 @@ private:
 	Vector 						cCartVel; 	// Current cartesian velocity
 	Vector 						pCartPos;	// Previous cartesian position
 
+	Vector						JointPos_handle;
 	Vector 						cJointPos;	// Current joint position
 	Vector 						cJointVel;	// Current joint velocity
 
@@ -138,6 +150,8 @@ private:
 
 	double						Stiffness;
 	double						Damping;
+
+
 
 
 	// Variables for filter usage
