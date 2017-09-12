@@ -251,8 +251,8 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 
 
 	// Dynamical system parameters
-	Stiffness= -400;
-	Damping = -40;
+	Stiffness= -100;
+	Damping = -20;
 
 	// Points:
 
@@ -477,7 +477,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 		// Desired acceleration (== force)
-		cCartTargetAcc.SetSubVector(0, (cCartPos-fCartTargetPos)*Stiffness + cCartVel.GetSubVector(0,3)*Damping);
+		cCartTargetAcc.SetSubVector(0, (cCartPos-fCartTargetPos)*Stiffness + cCartTargetVel.GetSubVector(0,3)*Damping);
 		//cCartTargetAcc.SetSubVector(3, (fCartTargetDirY-cCartDirY) / pow(_dt, 2));
 		//cCartTargetAcc.SetSubVector(6, (fCartTargetDirZ-cCartDirZ) / pow(_dt, 2));
 
@@ -489,9 +489,9 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		//This is not necessary because this passage from velocity to position is done in the joint space
 		cCartTargetPos=cCartPos + cCartTargetVel.GetSubVector(0,3)*_dt;
 
-		mTargetVelocity.SetSubVector(0, (cCartTargetPos -cCartPos ) / _dt);
-		mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY)/ _dt);
-		mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ)/ _dt);
+		mTargetVelocity.SetSubVector(0, (cCartTargetPos -cCartPos )/_dt);
+		mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY)*100);
+		mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ)*100);
 
 		//mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY) / _dt );
 		//mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ) / _dt );
@@ -535,9 +535,9 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 
 		//distance2target = sqrt(pow(fCartTargetPos[0]-cCartPos[0], 2) + pow(fCartTargetPos[1]-cCartPos[1], 2) +pow(fCartTargetPos[2]-cCartPos[2], 2));
 		distance2target_x = fCartTargetPos[0]-cCartPos[0];
-
-		if(abs(distance2target)>0.01)
-			mCommand = COMMAND_Back;
+		cout<<distance2target_x<<endl;
+	//	if(abs(distance2target)>0.01)
+	//		mCommand = COMMAND_Back;
 
 		break;
 
@@ -550,14 +550,18 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		cout<<"IN PLANNER JOINT"<<endl;
 		//Output joint values
 	//	mSKinematicChain->getJoints(cJointPos.Array());
-		cJointPos.Print("cJointPos");
+	//	cJointPos.Print("cJointPos");
 
 		//Update joint command
 		cJointTargetPos = cJointPos + (fJointTargetPos-cJointPos)*_dt*10;
 
 		J_distance2P0 = cJointTargetPos-fJointTargetPos;
-		if (J_distance2P0.Norm() < 0.01){
+		cout<<J_distance2P0.Norm()<<endl;
+		if (J_distance2P0.Norm() < 0.1){
+			mSKinematicChain->setJoints(cJointTargetPos.Array());
 			mSKinematicChain->getEndPos(fCartTargetPos.Array());
+			mSKinematicChain->getEndDirAxis(AXIS_Y, cCartTargetDirY.Array());
+			mSKinematicChain->getEndDirAxis(AXIS_Z, cCartTargetDirZ.Array());
 			mCommand=COMMAND_spring;// when it gets very close to the target position it passes to behave as a spring
 
 		}
@@ -593,7 +597,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdateCore(){
 		mRobot->SetControlMode(Robot::CTRLMODE_POSITION);
 
 	// Write joint values stored in mJointTargetPos in the simulator
-	cJointTargetPos.Print("cJointTargetPos");
+//	cJointTargetPos.Print("cJointTargetPos");
 	Send_Postion_To_Robot(cJointTargetPos);
 	mActuatorsGroup.SetJointAngles(cJointTargetPos);
 	mActuatorsGroup.WriteActuators();
