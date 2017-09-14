@@ -192,7 +192,7 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	mIKSolver.SetSizes(KUKA_DOF);  // Dof counts
 	mIKSolver.AddSolverItem(IK_CONSTRAINTS);
 	mIKSolver.SetVerbose(false);                // No comments
-	mIKSolver.SetThresholds(0.0001,0.00001);    // Singularities thresholds
+	mIKSolver.SetThresholds(0.001,0.001);    // Singularities thresholds
 	mIKSolver.Enable(true,0);                   // Enable first solver
 	mIKSolver.SetDofsIndices(mKinematicChain.GetJointMapping(),0); // Joint maps for first solver
 
@@ -228,9 +228,18 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	cCartDirZ(1) = 0;
 	cCartDirZ(2) = 1;
 
+
+	cCartTargetDirY(0) = 0;
+	cCartTargetDirY(1) = 1;
+	cCartTargetDirY(2) = 0;
+
+	cCartTargetDirZ(0) = 0;
+	cCartTargetDirZ(1) = 0;
+	cCartTargetDirZ(2) = 1;
+
 	// Filter
 	sgFilterOrder = 2;
-	sgFilterWindowL = 10;
+	sgFilterWindowL = 50;
 	inputDataDim = 3;
 	outputData.resize(inputDataDim);
 	inputData.resize(inputDataDim);
@@ -275,15 +284,7 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	jBack(5) = -PI/4.0;
 	jBack(6) = 0.0;
 
-	/*lTargetPos(0)=-0.3;
-	lTargetPos(1)=0.3;
-	lTargetPos(2)=0.75;
-	lTargetDirY(0)=0;
-	lTargetDirY(1)=0;
-	lTargetDirY(2)=-1;
-	lTargetDirZ(0)=-1;
-	lTargetDirZ(1)=0;
-	lTargetDirZ(2)=0;*/
+	Constant_joint=1;
 
 	mRobot->SetControlMode(Robot::CTRLMODE_POSITION);
 	ros::NodeHandle *n = mRobot->InitializeROS();
@@ -305,10 +306,10 @@ RobotInterface::Status monkeytask_test_1::RobotStart(){
 	cJointPos.Zero();
 	if (True_robot)
 	{
-	while (Position_of_the_robot_recieved==false)
-	{
-		ros::spinOnce();
-	}
+		while (Position_of_the_robot_recieved==false)
+		{
+			ros::spinOnce();
+		}
 	}
 	else
 	{
@@ -358,59 +359,43 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 	//mSKinematicChain->setJoints(mJointPosAll.Array());
 	mSKinematicChain->setJoints(cJointPos.Array());
 	//Saving target point position and relative axis direction in the correspondent attribute in the KinematicChain object
-	mSKinematicChain->getEndPos(lPos.Array());
-	//mSKinematicChain->getEndDirAxis(AXIS_X, lDirX.Array());
-	//mSKinematicChain->getEndDirAxis(AXIS_Y, lDirY.Array());
-	//mSKinematicChain->getEndDirAxis(AXIS_Z, lDirZ.Array());
+	mSKinematicChain->getEndPos(cCartPos.Array());
 	mSKinematicChain->getEndDirAxis(AXIS_X, cCartDirX.Array());
 	mSKinematicChain->getEndDirAxis(AXIS_Y, cCartDirY.Array());
 	mSKinematicChain->getEndDirAxis(AXIS_Z, cCartDirZ.Array());
-//	cCartDirX.Print("cCartDirX");
-//	cCartDirY.Print("cCartDirY");
-//	cCartDirZ.Print("cCartDirZ");
+	//	cCartDirX.Print("cCartDirX");
+	//	cCartDirY.Print("cCartDirY");
+	//	cCartDirZ.Print("cCartDirZ");
 
 
 	//Setting different planners for different commands
 	switch(mCommand){
 	case COMMAND_2Position :
-		//fJointTargetPos[3] =  -PI/2.0;
-
-		//fJointTargetPos.Set(P1, KUKA_DOF);
-		//fJointTargetPos.Set(P2, KUKA_DOF);
-		//fJointTargetPos.Set(P3, KUKA_DOF);
-		//fJointTargetPos.Set(P4, KUKA_DOF);
-		//fJointTargetPos.Set(P5, KUKA_DOF);
-		//fJointTargetPos.Set(P6, KUKA_DOF);
-		//fJointTargetPos.Set(P7, KUKA_DOF);
-		//fJointTargetPos.Set(P8, KUKA_DOF);
-		//fJointTargetPos.Set(C, KUKA_DOF);
-
-		//fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-
-		/*fJointTargetPos[0] =  0.0;
-		fJointTargetPos[1] =  PI/4.0;
-		fJointTargetPos[2] =  -0.0;
-		fJointTargetPos[3] =  -PI/2.0;
-		fJointTargetPos[4] =  0.0;
-		fJointTargetPos[5] =  -PI/4.0;
-		fJointTargetPos[6] =  0.0;*/
-
 		mPlanner = PLANNER_JOINT;
 		break;
 	case COMMAND_spring :
-		mPlanner = PLANNER_CARTESIAN;//Add termination condition in planner
-		//mCommand=NONE_comand;
+		if (ros::Time::now().toSec()-secs>0.5)
+		{
+			mSKinematicChain->setJoints(cJointPos.Array());
+			mSKinematicChain->getEndPos(fCartTargetPos.Array());
+			//fCartTargetPos[0] = fCartTargetPos[0]  - 0.1;
+			//fCartTargetPos[1] = fCartTargetPos[1] + 0.1;
+			//fCartTargetPos[2] = fCartTargetPos[2]  + 0.1;
+
+			mSKinematicChain->getEndDirAxis(AXIS_Y, cCartTargetDirY.Array());
+			mSKinematicChain->getEndDirAxis(AXIS_Z, cCartTargetDirZ.Array());
+
+			mPlanner = PLANNER_CARTESIAN;//Add termination condition in planner
+			mCommand=NONE_comand;
+		}
 		break;
 	case COMMAND_Back:
+		fJointTargetPos = BackPosition;
 		mPlanner = PLANNER_JOINT;
-		//cCartPos[1] = cCartPos[1]-10;//Go Back of 10 cm
-		fJointTargetPos.Set(back, KUKA_DOF);
-		//mCommand=COMMAND_Home;
 		break;
 	case COMMAND_Home:
 		mPlanner = PLANNER_JOINT;
 		fJointTargetPos.Zero();
-		//mCommand=NONE_comand;
 		break;
 	}
 
@@ -426,7 +411,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		// c --> t
 		// d --> t+1
 		cout<<"IN PLANNER CARTESIAN"<<endl;
-		fCartTargetPos.Print("fCartTargetPos");
+		//fCartTargetPos.Print("fCartTargetPos");
 
 
 		//Updating target joint position variable with the JointPosition variable
@@ -448,29 +433,27 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 			mJacobian9.SetRow(lJacobianDirZ.GetRow(i), i+6);
 		}
 
+
+
+		//Updating the variables for current cartesian and joint position for next cycle
+		mSKinematicChain->getEndPos(cCartPos.Array());
+		mSKinematicChain->getEndDirAxis(AXIS_Y, cCartDirY.Array());
+		mSKinematicChain->getEndDirAxis(AXIS_Z, cCartDirZ.Array());
+
 		// Computing istantaneous velocity by means of:
 		// sg filter....
 		mSKinematicChain->getEndPos(cCartPos.Array());
 		inputData(0) = cCartPos(0);
-			inputData(1) = cCartPos(1);
-				inputData(2) = cCartPos(2);
+		inputData(1) = cCartPos(1);
+		inputData(2) = cCartPos(2);
 
 		Beafilter->AddData(inputData);
 		retCode = Beafilter->GetOutput(1, outputData);
 
 		copyVector(0)=outputData(0);
-				copyVector(1)=outputData(1);
-						copyVector(2)=outputData(2);
-	//	copyVector.Vector(outputData, inputDataDim);
+		copyVector(1)=outputData(1);
+		copyVector(2)=outputData(2);
 		cCartVel.SetSubVector(0, copyVector);
-
-		//... or in case os the first samples
-		if (retCode == -1){//Until I reach the window length I do it the noisy way
-			//Current Velocity
-			//	cCartVel.SetSubVector(0, (cCartPos -pCartPos ) / _dt);
-			//cCartVel.SetSubVector(3, (cCartDirY-pCartDirY) / _dt );
-			//cCartVel.SetSubVector(6, (cCartDirZ-pCartDirZ) / _dt );
-		}
 
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%%%%%% Dynamic system %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -490,8 +473,11 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		cCartTargetPos=cCartPos + cCartTargetVel.GetSubVector(0,3)*_dt;
 
 		mTargetVelocity.SetSubVector(0, (cCartTargetPos -cCartPos )/_dt);
-		mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY)*100);
-		mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ)*100);
+		mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY)*100); //*100
+		mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ)*100);// *100
+
+		cout<<"The error"<<mTargetVelocity.Norm()<<endl;
+
 
 		//mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY) / _dt );
 		//mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ) / _dt );
@@ -511,9 +497,6 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%% Variable update %%%%%%%%%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-		// Reading current Joint position and saving it in lJoints
-		mSKinematicChain->getEndPos(pCartPos.Array());//Saving pCartPos for next cycle
-
 
 		//Update the joints value with the joint velocities computed from the Jacobian
 		// This is the variable used to write to the simulator the values of the joints at this time step
@@ -523,22 +506,23 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 
 		//Updating the variables for current cartesian and joint position for next cycle
 		mSKinematicChain->getEndPos(cCartPos.Array());
-	//	mSKinematicChain->getJoints(cJointPos.Array());
-		//Reading the reached position
-/*		mSKinematicChain->getEndPos(lPos.Array());
+		mSKinematicChain->getEndDirAxis(AXIS_Y, cCartDirY.Array());
+		mSKinematicChain->getEndDirAxis(AXIS_Z, cCartDirZ.Array());
 
-		mSKinematicChain->setJoints(mJointDesPos.Array());*/
 
+		//cCartTargetVel = mTargetVelocity;
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%% Check for distance condition %%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 		//distance2target = sqrt(pow(fCartTargetPos[0]-cCartPos[0], 2) + pow(fCartTargetPos[1]-cCartPos[1], 2) +pow(fCartTargetPos[2]-cCartPos[2], 2));
 		distance2target_x = fCartTargetPos[0]-cCartPos[0];
-		cout<<distance2target_x<<endl;
-	//	if(abs(distance2target)>0.01)
-	//		mCommand = COMMAND_Back;
-
+		cout<<"Distance from target "<<endl;
+		cout<<abs(distance2target_x)<<endl;
+		if(abs(distance2target_x)>0.1){ // in the final application I need a major sign
+			cout<<"is it the case"<<endl;
+			mCommand = COMMAND_Back;
+		}
 		break;
 
 	case PLANNER_JOINT:
@@ -548,32 +532,76 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 
 		//My implementation
 		cout<<"IN PLANNER JOINT"<<endl;
+		cJointTargetPos = cJointPos + (fJointTargetPos-cJointPos)*_dt*10*Constant_joint;
+
 		//Output joint values
-	//	mSKinematicChain->getJoints(cJointPos.Array());
-	//	cJointPos.Print("cJointPos");
+		//	mSKinematicChain->getJoints(cJointPos.Array());
+		//	cJointPos.Print("cJointPos");
+		switch (mCommand){
+		case COMMAND_2Position:
+			cout<<"i am going to position"<<endl;
+			J_distance2P0 = cJointTargetPos-fJointTargetPos;
+			if (J_distance2P0.Norm() < 0.1){
+				secs =ros::Time::now().toSec();
+				cJointTargetPos=cJointPos;
+				mSKinematicChain->setJoints(cJointPos.Array());
+				mSKinematicChain->getEndPos(fCartTargetPos.Array());
+				//fCartTargetPos[0] = fCartTargetPos[0]  - 0.1;
+				//fCartTargetPos[1] = fCartTargetPos[1] + 0.1;
+				//fCartTargetPos[2] = fCartTargetPos[2]  + 0.1;
 
-		//Update joint command
-		cJointTargetPos = cJointPos + (fJointTargetPos-cJointPos)*_dt*10;
+				mSKinematicChain->getEndDirAxis(AXIS_Y, cCartTargetDirY.Array());
+				mSKinematicChain->getEndDirAxis(AXIS_Z, cCartTargetDirZ.Array());
+				mCommand=COMMAND_spring;// when it gets very close to the target position it passes to behave as a spring
 
-		J_distance2P0 = cJointTargetPos-fJointTargetPos;
-		cout<<J_distance2P0.Norm()<<endl;
-		if (J_distance2P0.Norm() < 0.1){
-			mSKinematicChain->setJoints(cJointTargetPos.Array());
-			mSKinematicChain->getEndPos(fCartTargetPos.Array());
-			mSKinematicChain->getEndDirAxis(AXIS_Y, cCartTargetDirY.Array());
-			mSKinematicChain->getEndDirAxis(AXIS_Z, cCartTargetDirZ.Array());
-			mCommand=COMMAND_spring;// when it gets very close to the target position it passes to behave as a spring
+			}
+
+			break;
+		case COMMAND_Back:
+			Constant_joint=2;
+			J_distance2Back = cJointPos-fJointTargetPos;
+			cout<<"i am going back "<<J_distance2Back.Norm() <<endl;
+			if (J_distance2Back.Norm() < 0.05 )
+			{
+				Constant_joint=1;
+				mCommand=COMMAND_Home;// when it gets very close to the target position it passes to behave as a spring
+			}
+
+
+			break;
+
 
 		}
-//		J_distance2Back = cJointTargetPos-BackPosition;
-//		if (J_distance2Back.Norm() < 0.01 && mCommand == COMMAND_Back)
-//					mCommand=COMMAND_Home;// when it gets very close to the target position it passes to behave as a spring
-
-		break;
-
-
-
-
+		//		//Update joint command
+		//		cJointTargetPos = cJointPos + (fJointTargetPos-cJointPos)*_dt*10;
+		//
+		//
+		//
+		////		cout<<mCommand<<endl;
+		////		cout<<COMMAND_2Position<<endl;
+		////		cout<<"Distance From position"<<endl;
+		////		cout<<J_distance2P0.Norm()<<endl;
+		//
+		//		if (J_distance2P0.Norm() < 0.1 && mCommand == COMMAND_2Position){
+		//
+		//			mSKinematicChain->setJoints(cJointTargetPos.Array());
+		//			mSKinematicChain->getEndPos(fCartTargetPos.Array());
+		//			fCartTargetPos[0] = fCartTargetPos[0]  + 0.1;
+		//			fCartTargetPos[1] = fCartTargetPos[1]  + 0.1;
+		//			fCartTargetPos[2] = fCartTargetPos[2]  + 0.1;
+		//
+		//			mSKinematicChain->getEndDirAxis(AXIS_Y, cCartTargetDirY.Array());
+		//			mSKinematicChain->getEndDirAxis(AXIS_Z, cCartTargetDirZ.Array());
+		//			mCommand=COMMAND_spring;// when it gets very close to the target position it passes to behave as a spring
+		//
+		//		}// close if
+		//
+		//		J_distance2Back = cJointTargetPos-BackPosition;
+		//		cout<<J_distance2Back.Norm() <<endl;
+		//		if (J_distance2Back.Norm() < 0.1 && mCommand == COMMAND_Back)
+		//					mCommand=COMMAND_Home;// when it gets very close to the target position it passes to behave as a spring
+		//
+		//		break;
 
 	}
 	return STATUS_OK;
@@ -597,7 +625,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdateCore(){
 		mRobot->SetControlMode(Robot::CTRLMODE_POSITION);
 
 	// Write joint values stored in mJointTargetPos in the simulator
-//	cJointTargetPos.Print("cJointTargetPos");
+	//	cJointTargetPos.Print("cJointTargetPos");
 	Send_Postion_To_Robot(cJointTargetPos);
 	mActuatorsGroup.SetJointAngles(cJointTargetPos);
 	mActuatorsGroup.WriteActuators();
@@ -612,26 +640,30 @@ int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<st
 	cout<<"Write your command"<<endl;
 
 	if(cmd=="p0"){
+		Constant_joint=1;
 
 		// set target point in joint space
 		fJointTargetPos.Set(C, KUKA_DOF);
 		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
 		BackPosition.Set(C,KUKA_DOF);
 		BackPosition.Mult((PI/180.0), BackPosition);
-		//Start the contrl chain
+
+		//Start the control chain
 		mCommand = COMMAND_2Position;
 
-		}
+	}
 	else if(cmd=="p1"){
 		// set target point in joint space
+		Constant_joint=1;
 		fJointTargetPos.Set(P1, KUKA_DOF);
 		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
 		BackPosition.Set(P1,KUKA_DOF);
 		BackPosition.Mult((PI/180.0), BackPosition);
 		//Start the contrl chain
 		mCommand = COMMAND_2Position;
-		}
+	}
 	else if(cmd=="p2"){
+		Constant_joint=1;
 		// set target point in joint space
 		fJointTargetPos.Set(P2, KUKA_DOF);
 		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
@@ -640,8 +672,9 @@ int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<st
 		//Start the contrl chain
 		mCommand = COMMAND_2Position;
 
-		}
+	}
 	else if(cmd=="p3"){
+		Constant_joint=1;
 		// set target point in joint space
 		fJointTargetPos.Set(P3, KUKA_DOF);
 		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
@@ -650,9 +683,10 @@ int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<st
 		//Start the contrl chain
 		mCommand = COMMAND_2Position;
 
-		}
+	}
 
 	else if(cmd=="p4"){
+		Constant_joint=1;
 		// set target point in joint space
 		fJointTargetPos.Set(P4, KUKA_DOF);
 		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
@@ -661,9 +695,10 @@ int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<st
 		//Start the contrl chain
 		mCommand = COMMAND_2Position;
 
-		}
+	}
 
 	else if(cmd=="p5"){
+		Constant_joint=1;
 		// set target point in joint space
 		fJointTargetPos.Set(P5, KUKA_DOF);
 		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
@@ -672,8 +707,9 @@ int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<st
 		//Start the contrl chain
 		mCommand = COMMAND_2Position;
 
-		}
+	}
 	else if(cmd=="p6"){
+		Constant_joint=1;
 		// set target point in joint space
 		fJointTargetPos.Set(P6, KUKA_DOF);
 		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
@@ -683,27 +719,29 @@ int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<st
 		mCommand = COMMAND_2Position;
 
 
-		}
+	}
 	else if(cmd=="p7"){
-			// set target point in joint space
-			fJointTargetPos.Set(P7, KUKA_DOF);
-			fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-			BackPosition.Set(P7,KUKA_DOF);
-			BackPosition.Mult((PI/180.0), BackPosition);
-			//Start the contrl chain
-			mCommand = COMMAND_2Position;
+		Constant_joint=1;
+		// set target point in joint space
+		fJointTargetPos.Set(P7, KUKA_DOF);
+		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
+		BackPosition.Set(P7,KUKA_DOF);
+		BackPosition.Mult((PI/180.0), BackPosition);
+		//Start the contrl chain
+		mCommand = COMMAND_2Position;
 
 
-		}
+	}
 	else if(cmd=="p8"){
-				// set target point in joint space
-				fJointTargetPos.Set(P8, KUKA_DOF);
-				fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-				BackPosition.Set(P8,KUKA_DOF);
-				BackPosition.Mult((PI/180.0), BackPosition);
-				//Start the contrl chain
-				mCommand = COMMAND_2Position;
-		}
+		Constant_joint=1;
+		// set target point in joint space
+		fJointTargetPos.Set(P8, KUKA_DOF);
+		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
+		BackPosition.Set(P8,KUKA_DOF);
+		BackPosition.Mult((PI/180.0), BackPosition);
+		//Start the contrl chain
+		mCommand = COMMAND_2Position;
+	}
 
 
 
