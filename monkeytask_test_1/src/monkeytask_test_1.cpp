@@ -260,29 +260,29 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 
 
 	// Dynamical system parameters
-	Stiffness= -100;
-	Damping = -20;
+	Stiffness= -10;
+	Damping = -0.1;
 
 	// Points:
 
-	// Pulling position
-	jP0(0) = 0.0;
-	jP0(1) = 0.0;
-	jP0(2) = 0.0;
-	jP0(3) = -PI/2.0;
-	jP0(4) = 0.0;
-	jP0(5) = 0.0;
-	jP0(6) = 0.0;
-
-
-	// Back Position
-	jBack(0) = 0.0;
-	jBack(1) =-PI/4.0;
-	jBack(2) = 0.0;
-	jBack(3) = -PI/2.0;
-	jBack(4) = 0.0;
-	jBack(5) = -PI/4.0;
-	jBack(6) = 0.0;
+//	// Pulling position
+//	jP0(0) = 0.0;
+//	jP0(1) = 0.0;
+//	jP0(2) = 0.0;
+//	jP0(3) = -PI/2.0;
+//	jP0(4) = 0.0;
+//	jP0(5) = 0.0;
+//	jP0(6) = 0.0;
+//
+//
+//	// Back Position
+//	jBack(0) = 0.0;
+//	jBack(1) =-PI/4.0;
+//	jBack(2) = 0.0;
+//	jBack(3) = -PI/2.0;
+//	jBack(4) = 0.0;
+//	jBack(5) = -PI/4.0;
+//	jBack(6) = 0.0;
 
 	Constant_joint=1;
 
@@ -374,7 +374,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		mPlanner = PLANNER_JOINT;
 		break;
 	case COMMAND_spring :
-		if (ros::Time::now().toSec()-secs>0.5)
+		if (ros::Time::now().toSec()-secs>3)
 		{
 			mSKinematicChain->setJoints(cJointPos.Array());
 			mSKinematicChain->getEndPos(fCartTargetPos.Array());
@@ -515,18 +515,19 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		// %%%%%%%%%%%%%%%%%%%%% Check for distance condition %%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+		cout<< "Cartesian position"<<cCartPos<<endl;
 		//distance2target = sqrt(pow(fCartTargetPos[0]-cCartPos[0], 2) + pow(fCartTargetPos[1]-cCartPos[1], 2) +pow(fCartTargetPos[2]-cCartPos[2], 2));
 		distance2target_x = fCartTargetPos[0]-cCartPos[0];
 		cout<<"Distance from target "<<endl;
-		cout<<abs(distance2target_x)<<endl;
-		if(abs(distance2target_x)>0.1){ // in the final application I need a major sign
+		cout<<(distance2target_x)<<endl;
+		if((distance2target_x)> 0.1){ // in the final application I need a major sign
 			cout<<"is it the case"<<endl;
 			mCommand = COMMAND_Back;
 		}
 		break;
 
 	case PLANNER_JOINT:
-
+		cout<<fJointTargetPos*(180/PI)<<endl;
 		// If the Planner is held in the joint space joint values are directly updated
 		//mJointTargetPos=mJointPosAll+(mJobJoints-mJointPosAll)*_dt*10;
 
@@ -534,14 +535,18 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		cout<<"IN PLANNER JOINT"<<endl;
 		cJointTargetPos = cJointPos + (fJointTargetPos-cJointPos)*_dt*10*Constant_joint;
 
+		mSKinematicChain->getEndPos(cCartPos.Array());
+		cout<< "Cartesian position"<<cCartPos<<endl;
 		//Output joint values
 		//	mSKinematicChain->getJoints(cJointPos.Array());
 		//	cJointPos.Print("cJointPos");
+
 		switch (mCommand){
 		case COMMAND_2Position:
 			cout<<"i am going to position"<<endl;
 			J_distance2P0 = cJointTargetPos-fJointTargetPos;
-			if (J_distance2P0.Norm() < 0.1){
+			cout<<J_distance2P0<<endl;
+			if (J_distance2P0.Norm() < 0.5){
 				secs =ros::Time::now().toSec();
 				cJointTargetPos=cJointPos;
 				mSKinematicChain->setJoints(cJointPos.Array());
@@ -561,7 +566,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 			Constant_joint=2;
 			J_distance2Back = cJointPos-fJointTargetPos;
 			cout<<"i am going back "<<J_distance2Back.Norm() <<endl;
-			if (J_distance2Back.Norm() < 0.05 )
+			if (J_distance2Back.Norm() < 0.1 )
 			{
 				Constant_joint=1;
 				mCommand=COMMAND_Home;// when it gets very close to the target position it passes to behave as a spring
@@ -643,9 +648,10 @@ int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<st
 		Constant_joint=1;
 
 		// set target point in joint space
-		fJointTargetPos.Set(C, KUKA_DOF);
+		fJointTargetPos.Set(P0, KUKA_DOF);
 		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-		BackPosition.Set(C,KUKA_DOF);
+
+		BackPosition.Set(P0,KUKA_DOF);
 		BackPosition.Mult((PI/180.0), BackPosition);
 
 		//Start the control chain

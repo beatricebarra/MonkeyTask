@@ -36,9 +36,9 @@
 #define FINGER_DOF 0
 #define IK_CONSTRAINTS 9
 #define _dt (1.0/500.)
-double cJob[]  = {0.0, -PI/4.0, 0.0, -PI/2.0, 0.0, -PI/4.0, 0.0};
+//double cJob[]  = {0.0, -PI/4.0, 0.0, -PI/2.0, 0.0, -PI/4.0, 0.0};
 
-double back[] = {0.0, -PI/4.0, 0.0, -PI/2.0, 0.0, -PI/4.0, 0.0};
+//double back[] = {0.0, -PI/4.0, 0.0, -PI/2.0, 0.0, -PI/4.0, 0.0};
 
 // Target Points
 double P1[] = {6.3, 12.38, 4.34, -69.36, 104.19, -11.11, -97.61};
@@ -49,7 +49,7 @@ double P5[] = {-1.8, 49.67, 3.09, -91.85, -1.37, -60.46, -25.77};
 double P6[] = {6.56, 28.91, -25.29, -112.69, 148.33, 48.44, -146.40};
 double P7[] = {-54.95, 25.93, 45.84, -91.25, 108.02, 14.81, -127.92};
 double P8[] = {-54.66, 7.94, 45.85, -82.96, 46.75, 19.07, -51.08};
-double C[] = {0, 3.65, 0 -106.29, 0 -24.88, 4.6};
+double P0[] = {-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40};
 
 
 
@@ -57,13 +57,6 @@ enum ENUM_COMMAND{COMMAND_2Position, COMMAND_spring, COMMAND_Back, COMMAND_Home,
 enum ENUM_PLANNER{PLANNER_CARTESIAN, PLANNER_JOINT, NONE_planner};
 enum ENUM_AXIS{AXIS_X=0, AXIS_Y, AXIS_Z};
 
-//Target points
-
-double p0[]  = {-0.3, 0, 0.5};
-double p1[]  = {-0.3, 0, 0.75};//north
-double p2[]  = {-0.3, -0.3, 0.5};//east
-double p3[]  = {-0.3, 0, 0.25};//south
-double p4[]  = {-0.3, 0.3, 0.5};//west
 // They have all the same direction of the end effector
 double pYdir[] = {0.0, 1.0, 0.0};
 double pZdir[] = {-1.0, 0.0, 0.0};
