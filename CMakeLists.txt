@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(monkeytask)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11 -I /usr/include/SDL2 -lSDL2)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -107,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS monkeytask_test_1/include
-#  LIBRARIES monkeytask
+  LIBRARIES monkeytask SDL2 
   CATKIN_DEPENDS mathlib robotlib
 #  DEPENDS system_lib
 )

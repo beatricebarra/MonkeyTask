@@ -31,6 +31,13 @@
 
 #include "eigen3/Eigen/Dense"
 #include "sg_filter.h"
+#include <iostream>
+#include "/usr/include/opencv/cv.h"
+
+//9/10/2017
+#include <math.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_audio.h>
 
 #define KUKA_DOF 7
 #define FINGER_DOF 0
@@ -140,7 +147,8 @@ private:
 	Vector 						pCartDirY; 	// Previous cartesian y direction
 	Vector 						pCartDirZ; 	// Previous cartesian z direction
 
-
+//	Vector						Stiffness;
+//	Vector						Damping;
 	double						Stiffness;
 	double						Damping;
 

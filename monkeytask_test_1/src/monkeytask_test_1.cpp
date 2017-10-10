@@ -18,8 +18,14 @@
 
 
 bool closed_loop=true;
-bool True_robot=true;
+bool True_robot=false;
 bool Position_of_the_robot_recieved=false;
+
+//For audio
+const int AMPLITUDE = 28000;
+const int SAMPLE_RATE = 44100;
+void audio_callback(void *user_data, Uint8 *raw_buffer, int bytes);
+void playTone();
 
 monkeytask_test_1::monkeytask_test_1()
 :RobotInterface(){
@@ -90,6 +96,9 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	cCartTargetVel.Resize(9); // Current cartesian target velocity
 	cCartTargetAcc.Resize(9); // Current cartesian target acceleration
 	cCartVel.Resize(9); 	// Current cartesian velocity
+
+//	Stiffness.Resize(3);
+//	Damping.Resize(3);
 
 	copyVector.Resize(3);
 	J_distance2P0.Resize(KUKA_DOF);
@@ -260,10 +269,15 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 
 
 	// Dynamical system parameters
-	Stiffness= -10;
-	Damping = -0.1;
-
-	// Points:
+//	Stiffness[0]= -30;
+//	Stiffness[1]= -30;
+//	Stiffness[2]= -30;
+//	Damping[0] = -10;
+//	Damping[1] = -10;
+//	Damping[2] = -10;
+	Stiffness = -30;
+	Damping = -10;
+//	// Points:
 
 //	// Pulling position
 //	jP0(0) = 0.0;
@@ -375,7 +389,9 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		break;
 	case COMMAND_spring :
 		if (ros::Time::now().toSec()-secs>3)
-		{
+		{	// Play a tone at 440 Hz
+			playTone();
+			//system("aplay out -r 44100 -f S16_LE");
 			mSKinematicChain->setJoints(cJointPos.Array());
 			mSKinematicChain->getEndPos(fCartTargetPos.Array());
 			//fCartTargetPos[0] = fCartTargetPos[0]  - 0.1;
@@ -520,7 +536,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		distance2target_x = fCartTargetPos[0]-cCartPos[0];
 		cout<<"Distance from target "<<endl;
 		cout<<(distance2target_x)<<endl;
-		if((distance2target_x)> 0.1){ // in the final application I need a major sign
+		if((distance2target_x)> 0.1 || ros::Time::now().toSec()-secs>10){ // in the final application I need a major sign
 			cout<<"is it the case"<<endl;
 			mCommand = COMMAND_Back;
 		}
@@ -753,6 +769,47 @@ int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<st
 
 	return STATUS_OK;
 	//return 0;
+}
+
+void audio_callback(void *user_data, Uint8 *raw_buffer, int bytes)
+{
+    Sint16 *buffer = (Sint16*)raw_buffer;
+    int length = bytes / 2; // 2 bytes per sample for AUDIO_S16SYS
+    int &sample_nr(*(int*)user_data);
+
+    for(int i = 0; i < length; i++, sample_nr++)
+    {
+        double time = (double)sample_nr / (double)SAMPLE_RATE;
+        buffer[i] = (Sint16)(AMPLITUDE * sin(2.0f * M_PI * 441.0f * time)); // render 441 HZ sine wave
+    }
+}
+
+void playTone(){
+	cout<< "here"<<endl;
+	cout<<SDL_Init(SDL_INIT_AUDIO)<<endl;
+
+//if(SDL_Init(SDL_INIT_AUDIO) != 0) SDL_Log("Failed to initialize SDL: %s", SDL_GetError());
+
+    int sample_nr = 0;
+
+    SDL_AudioSpec want;
+    want.freq = SAMPLE_RATE; // number of samples per second
+    want.format = AUDIO_S16SYS; // sample type (here: signed short i.e. 16 bit)
+    want.channels = 1; // only one channel
+    want.samples = 2048; // buffer-size
+    want.callback = audio_callback; // function SDL calls periodically to refill the buffer
+    want.userdata = &sample_nr; // counter, keeping track of current sample number
+
+//    SDL_AudioSpec have;
+//    if(SDL_OpenAudio(&want, &have) != 0) SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to open audio: %s", SDL_GetError());
+//    if(want.format != have.format) SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to get the desired AudioSpec");
+
+    SDL_PauseAudio(0); // start playing sound
+    SDL_Delay(1000); // wait while sound is playing
+    SDL_PauseAudio(1); // stop playing sound
+
+    SDL_CloseAudio();
+
 }
 
 
