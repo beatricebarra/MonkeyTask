@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+ find_package(SDL REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -160,7 +160,7 @@ add_library(monkeytask_test_1 ${theSourceFiles})
 # )
 
  target_link_libraries(monkeytask_test_1
-   ${catkin_LIBRARIES}
+   ${catkin_LIBRARIES} SDL
  )
 
 # target_link_libraries(monkeytask_test_2
