@@ -18,7 +18,7 @@
 
 
 bool closed_loop=true;
-bool True_robot=false;
+bool True_robot=true;
 bool Position_of_the_robot_recieved=false;
 
 //For audio
@@ -356,6 +356,7 @@ RobotInterface::Status monkeytask_test_1::RobotStart(){
 		mJointVelLimitsDn(i) = -mSKinematicChain->getMaxVel(i);
 		mJointVelLimitsUp(i) =  mSKinematicChain->getMaxVel(i);
 	}
+
 	cout<<"End of Robot Start"<<endl;
 	return STATUS_OK;
 }    
@@ -388,19 +389,16 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		mPlanner = PLANNER_JOINT;
 		break;
 	case COMMAND_spring :
-		if (ros::Time::now().toSec()-secs>3)
+		if (ros::Time::now().toSec()-secs>1)
 		{	// Play a tone at 440 Hz
 			playTone();
-			//system("aplay out -r 44100 -f S16_LE");
+			// Writing joints
 			mSKinematicChain->setJoints(cJointPos.Array());
+			// Reading end-effector pose and orientation
 			mSKinematicChain->getEndPos(fCartTargetPos.Array());
-			//fCartTargetPos[0] = fCartTargetPos[0]  - 0.1;
-			//fCartTargetPos[1] = fCartTargetPos[1] + 0.1;
-			//fCartTargetPos[2] = fCartTargetPos[2]  + 0.1;
-
 			mSKinematicChain->getEndDirAxis(AXIS_Y, cCartTargetDirY.Array());
 			mSKinematicChain->getEndDirAxis(AXIS_Z, cCartTargetDirZ.Array());
-
+			// Setting planner
 			mPlanner = PLANNER_CARTESIAN;//Add termination condition in planner
 			mCommand=NONE_comand;
 		}
@@ -418,7 +416,7 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 
 	// Definition and implementation of type of movement
 	switch(mPlanner){
-	// PLANNER CARTESIAN implements the impedance control with a stifness and damping factor
+	// PLANNER CARTESIAN implements the impedance control with a stiffness and damping factor
 	case PLANNER_CARTESIAN:
 
 
@@ -427,11 +425,6 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		// c --> t
 		// d --> t+1
 		cout<<"IN PLANNER CARTESIAN"<<endl;
-		//fCartTargetPos.Print("fCartTargetPos");
-
-
-		//Updating target joint position variable with the JointPosition variable
-		//lJoints=mJointPosAll;
 
 		//Dealing with Jacobian
 		//NB: mJacobian3 is NOT the input, is the variable in which the computed Jacobian is written, it is a pointer
@@ -439,10 +432,9 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		mSKinematicChain->getJacobianDirection(AXIS_Y, lJacobianDirY);
 		mSKinematicChain->getJacobianDirection(AXIS_Z, lJacobianDirZ);
 
-		// Setting joint speed limits for the IK solver --> I suppose they will be checked in the function of the solver that sets the Jacobian, But I did not check
+		// Setting joint speed limits for the IK solver
 		mIKSolver.SetLimits(mJointVelLimitsDn,mJointVelLimitsUp);
 		mJacobian3.Mult(1.0,mJacobian3);
-
 		for(int i=0; i<3; i++){
 			mJacobian9.SetRow(mJacobian3.GetRow(i)   , i  );
 			mJacobian9.SetRow(lJacobianDirY.GetRow(i), i+3);
@@ -477,26 +469,16 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 
 		// Desired acceleration (== force)
 		cCartTargetAcc.SetSubVector(0, (cCartPos-fCartTargetPos)*Stiffness + cCartTargetVel.GetSubVector(0,3)*Damping);
-		//cCartTargetAcc.SetSubVector(3, (fCartTargetDirY-cCartDirY) / pow(_dt, 2));
-		//cCartTargetAcc.SetSubVector(6, (fCartTargetDirZ-cCartDirZ) / pow(_dt, 2));
-
 		// Desired velocity
 		cCartTargetVel.SetSubVector(0,cCartTargetVel.GetSubVector(0,3) + cCartTargetAcc.GetSubVector(0,3)*_dt);
-		//cCartTargetVel.SetSubVector(3,cCartTargetAcc.GetSubVector(3,3)*_dt);
-		//cCartTargetVel.SetSubVector(6,cCartTargetAcc.GetSubVector(6,3)*_dt);// I put the target direction of th velocity as the target direction of the acceleration but multiplied by dt
-
-		//This is not necessary because this passage from velocity to position is done in the joint space
+		// Desired position
 		cCartTargetPos=cCartPos + cCartTargetVel.GetSubVector(0,3)*_dt;
 
+		// Setting target velocity for ikine
 		mTargetVelocity.SetSubVector(0, (cCartTargetPos -cCartPos )/_dt);
 		mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY)*100); //*100
 		mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ)*100);// *100
 
-		cout<<"The error"<<mTargetVelocity.Norm()<<endl;
-
-
-		//mTargetVelocity.SetSubVector(3, (cCartTargetDirY-cCartDirY) / _dt );
-		//mTargetVelocity.SetSubVector(6, (cCartTargetDirZ-cCartDirZ) / _dt );
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%%%%%%% Inverse kinematics %%%%%%%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -507,7 +489,6 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		//Solving IK
 		mIKSolver.Solve();
 		cJointTargetVel = mIKSolver.GetOutput();
-		//mJointDesVel
 
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%% Variable update %%%%%%%%%%%%%%%%%%%%%%%
@@ -519,25 +500,20 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		cJointTargetPos = cJointPos + cJointTargetVel*_dt;
 		mSKinematicChain->setJoints(cJointTargetPos.Array());
 
-
 		//Updating the variables for current cartesian and joint position for next cycle
 		mSKinematicChain->getEndPos(cCartPos.Array());
 		mSKinematicChain->getEndDirAxis(AXIS_Y, cCartDirY.Array());
 		mSKinematicChain->getEndDirAxis(AXIS_Z, cCartDirZ.Array());
 
-
-		//cCartTargetVel = mTargetVelocity;
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%% Check for distance condition %%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-		cout<< "Cartesian position"<<cCartPos<<endl;
-		//distance2target = sqrt(pow(fCartTargetPos[0]-cCartPos[0], 2) + pow(fCartTargetPos[1]-cCartPos[1], 2) +pow(fCartTargetPos[2]-cCartPos[2], 2));
+		// Distance on x axis
 		distance2target_x = fCartTargetPos[0]-cCartPos[0];
-		cout<<"Distance from target "<<endl;
-		cout<<(distance2target_x)<<endl;
+		// Condition for going back home:
+		// - The robot has been pulled of 10 cm OR 00 seconds elapsed without any accomplishment from the monkey
 		if((distance2target_x)> 0.1 || ros::Time::now().toSec()-secs>10){ // in the final application I need a major sign
-			cout<<"is it the case"<<endl;
 			mCommand = COMMAND_Back;
 		}
 		break;
@@ -545,95 +521,50 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 	case PLANNER_JOINT:
 		cout<<fJointTargetPos*(180/PI)<<endl;
 		// If the Planner is held in the joint space joint values are directly updated
-		//mJointTargetPos=mJointPosAll+(mJobJoints-mJointPosAll)*_dt*10;
 
 		//My implementation
 		cout<<"IN PLANNER JOINT"<<endl;
+		// Target position in joint space
 		cJointTargetPos = cJointPos + (fJointTargetPos-cJointPos)*_dt*10*Constant_joint;
-
+		// Readin end effector pose
 		mSKinematicChain->getEndPos(cCartPos.Array());
-		cout<< "Cartesian position"<<cCartPos<<endl;
-		//Output joint values
-		//	mSKinematicChain->getJoints(cJointPos.Array());
-		//	cJointPos.Print("cJointPos");
 
 		switch (mCommand){
 		case COMMAND_2Position:
-			cout<<"i am going to position"<<endl;
+			// Going to target point
 			J_distance2P0 = cJointTargetPos-fJointTargetPos;
-			cout<<J_distance2P0<<endl;
 			if (J_distance2P0.Norm() < 0.5){
 				secs =ros::Time::now().toSec();
 				cJointTargetPos=cJointPos;
+				// Set Joints
 				mSKinematicChain->setJoints(cJointPos.Array());
+				// Reading end-effector pose and orientation
 				mSKinematicChain->getEndPos(fCartTargetPos.Array());
-				//fCartTargetPos[0] = fCartTargetPos[0]  - 0.1;
-				//fCartTargetPos[1] = fCartTargetPos[1] + 0.1;
-				//fCartTargetPos[2] = fCartTargetPos[2]  + 0.1;
-
 				mSKinematicChain->getEndDirAxis(AXIS_Y, cCartTargetDirY.Array());
 				mSKinematicChain->getEndDirAxis(AXIS_Z, cCartTargetDirZ.Array());
-				mCommand=COMMAND_spring;// when it gets very close to the target position it passes to behave as a spring
-
+				mCommand=COMMAND_spring;
 			}
 
 			break;
 		case COMMAND_Back:
+			// Going back to the original target point after the monkey pulled
 			Constant_joint=2;
 			J_distance2Back = cJointPos-fJointTargetPos;
-			cout<<"i am going back "<<J_distance2Back.Norm() <<endl;
 			if (J_distance2Back.Norm() < 0.1 )
 			{
 				Constant_joint=1;
-				mCommand=COMMAND_Home;// when it gets very close to the target position it passes to behave as a spring
+				mCommand=COMMAND_Home;
 			}
-
-
 			break;
 
 
 		}
-		//		//Update joint command
-		//		cJointTargetPos = cJointPos + (fJointTargetPos-cJointPos)*_dt*10;
-		//
-		//
-		//
-		////		cout<<mCommand<<endl;
-		////		cout<<COMMAND_2Position<<endl;
-		////		cout<<"Distance From position"<<endl;
-		////		cout<<J_distance2P0.Norm()<<endl;
-		//
-		//		if (J_distance2P0.Norm() < 0.1 && mCommand == COMMAND_2Position){
-		//
-		//			mSKinematicChain->setJoints(cJointTargetPos.Array());
-		//			mSKinematicChain->getEndPos(fCartTargetPos.Array());
-		//			fCartTargetPos[0] = fCartTargetPos[0]  + 0.1;
-		//			fCartTargetPos[1] = fCartTargetPos[1]  + 0.1;
-		//			fCartTargetPos[2] = fCartTargetPos[2]  + 0.1;
-		//
-		//			mSKinematicChain->getEndDirAxis(AXIS_Y, cCartTargetDirY.Array());
-		//			mSKinematicChain->getEndDirAxis(AXIS_Z, cCartTargetDirZ.Array());
-		//			mCommand=COMMAND_spring;// when it gets very close to the target position it passes to behave as a spring
-		//
-		//		}// close if
-		//
-		//		J_distance2Back = cJointTargetPos-BackPosition;
-		//		cout<<J_distance2Back.Norm() <<endl;
-		//		if (J_distance2Back.Norm() < 0.1 && mCommand == COMMAND_Back)
-		//					mCommand=COMMAND_Home;// when it gets very close to the target position it passes to behave as a spring
-		//
-		//		break;
-
 	}
 	return STATUS_OK;
 }
 RobotInterface::Status monkeytask_test_1::RobotUpdateCore(){
 
 	ros::spinOnce();
-
-	// Read current Joints position and Sensors values
-
-	//mJointPosAll    = mSensorsGroup.GetJointAngles();
 
 	if (True_robot==false)
 	{
@@ -646,7 +577,6 @@ RobotInterface::Status monkeytask_test_1::RobotUpdateCore(){
 		mRobot->SetControlMode(Robot::CTRLMODE_POSITION);
 
 	// Write joint values stored in mJointTargetPos in the simulator
-	//	cJointTargetPos.Print("cJointTargetPos");
 	Send_Postion_To_Robot(cJointTargetPos);
 	mActuatorsGroup.SetJointAngles(cJointTargetPos);
 	mActuatorsGroup.WriteActuators();
@@ -788,7 +718,7 @@ void playTone(){
 	cout<< "here"<<endl;
 	cout<<SDL_Init(SDL_INIT_AUDIO)<<endl;
 
-//if(SDL_Init(SDL_INIT_AUDIO) != 0) SDL_Log("Failed to initialize SDL: %s", SDL_GetError());
+    if(SDL_Init(SDL_INIT_AUDIO) != 0) SDL_Log("Failed to initialize SDL: %s", SDL_GetError());
 
     int sample_nr = 0;
 
@@ -800,9 +730,9 @@ void playTone(){
     want.callback = audio_callback; // function SDL calls periodically to refill the buffer
     want.userdata = &sample_nr; // counter, keeping track of current sample number
 
-//    SDL_AudioSpec have;
-//    if(SDL_OpenAudio(&want, &have) != 0) SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to open audio: %s", SDL_GetError());
-//    if(want.format != have.format) SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to get the desired AudioSpec");
+    SDL_AudioSpec have;
+    if(SDL_OpenAudio(&want, &have) != 0) SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to open audio: %s", SDL_GetError());
+    if(want.format != have.format) SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to get the desired AudioSpec");
 
     SDL_PauseAudio(0); // start playing sound
     SDL_Delay(1000); // wait while sound is playing

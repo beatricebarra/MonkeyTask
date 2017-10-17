@@ -36,8 +36,8 @@
 
 //9/10/2017
 #include <math.h>
-#include <SDL/SDL.h>
-#include <SDL/SDL_audio.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_audio.h>
 
 #define KUKA_DOF 7
 #define FINGER_DOF 0

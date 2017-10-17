@@ -3,7 +3,7 @@ project(monkeytask)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11 -I /usr/include/SDL2 -lSDL2)
-
+add_compile_options(-I /usr/include/SDL2 -lSDL2)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -160,7 +160,7 @@ add_library(monkeytask_test_1 ${theSourceFiles})
 # )
 
  target_link_libraries(monkeytask_test_1
-   ${catkin_LIBRARIES} SDL
+   ${catkin_LIBRARIES} SDL2
  )
 
 # target_link_libraries(monkeytask_test_2
