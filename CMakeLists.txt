@@ -106,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS monkeytask_test_1/include
+  INCLUDE_DIRS monkeytask_test_1/include monkeytask_test_2/include 
   LIBRARIES monkeytask SDL2 
   CATKIN_DEPENDS mathlib robotlib
 #  DEPENDS system_lib
@@ -118,7 +118,8 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(monkeytask_test_1/include)
+include_directories(monkeytask_test_1/include) 
+include_directories(monkeytask_test_2/include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
@@ -131,8 +132,8 @@ include_directories(
 FILE(GLOB theSourceFiles monkeytask_test_1/src/*.cpp)
 add_library(monkeytask_test_1 ${theSourceFiles})
 
-#FILE(GLOB theSourceFiles monkeytask_test_2/src/*.cpp)
-#add_library(monkeytask_test_2 ${theSourceFiles})
+FILE(GLOB theSourceFiles2 monkeytask_test_2/src/*.cpp)
+add_library(monkeytask_test_2 ${theSourceFiles2})
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -163,9 +164,10 @@ add_library(monkeytask_test_1 ${theSourceFiles})
    ${catkin_LIBRARIES} SDL2
  )
 
-# target_link_libraries(monkeytask_test_2
-#   ${catkin_LIBRARIES}
-# )
+ target_link_libraries(monkeytask_test_2
+   ${catkin_LIBRARIES} SDL2
+ )
+
 #############
 ## Install ##
 #############
@@ -221,8 +223,8 @@ add_library(monkeytask_test_1 ${theSourceFiles})
 # just add the modules of this package as set(rtk_modules myAwesomeModule1 myAwesomeModule2)
 # modules can be world or robot modules. Note that you need to specify your targets using 
 # standard cmake/catkin procedures above. This is step is only for linking the build modules.
-set(rtk_modules monkeytask_test_1 )
-# set(rtk_modules monkeytask_test_1 monkeytask_test_2)
+#set(rtk_modules monkeytask_test_1 )
+ set(rtk_modules monkeytask_test_1 monkeytask_test_2)
 execute_process(COMMAND rospack find rtk_pkg_tools OUTPUT_VARIABLE rtk_pkg_tools_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 include(${rtk_pkg_tools_DIR}/rtk_create_symlinks.cmake)
 

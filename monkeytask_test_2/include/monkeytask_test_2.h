@@ -14,10 +14,8 @@
  * Public License for more details
  */
 
-#ifndef monkeytask_test_1_H_
-#define monkeytask_test_1_H_
-
-#include "RobotLib/RobotInterface.h"
+#ifndef monkeytask_test_2_H_
+#define monkeytask_test_2_H_
 
 #include "RobotLib/RobotInterface.h"
 #include "MathLib/MathLib.h"
@@ -29,27 +27,41 @@
 #include "sensor_msgs/JointState.h"
 #include "kuka_fri_bridge/JointStateImpedance.h"
 
-//#include "FRILibrary_ros/include/FastResearchInterface.h"
-
 #include "eigen3/Eigen/Dense"
 #include "sg_filter.h"
 #include <iostream>
+#include <fstream>
 #include "/usr/include/opencv/cv.h"
+#include "/usr/include/stdio.h"
+//#include "/usr/include/unistd.h"
+#include "/usr/include/fcntl.h"
+#include "/usr/include/errno.h"
+#include "/usr/include/string.h"
+//#include "/usr/include/termios.h"
+
+#include <termios.h>
+#include <unistd.h>
+
+
+
 
 //9/10/2017
 #include <math.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
-
+#include <time.h>
+// Defines
 #define KUKA_DOF 7
 #define FINGER_DOF 0
 #define IK_CONSTRAINTS 9
 #define _dt (1.0/500.)
-//double cJob[]  = {0.0, -PI/4.0, 0.0, -PI/2.0, 0.0, -PI/4.0, 0.0};
 
-//double back[] = {0.0, -PI/4.0, 0.0, -PI/2.0, 0.0, -PI/4.0, 0.0};
+//Enums
+enum ENUM_COMMAND{COMMAND_2Position, COMMAND_spring, COMMAND_Back, COMMAND_Home, COMMAND_Wait4Go, NONE_comand};
+enum ENUM_PLANNER{PLANNER_CARTESIAN, PLANNER_JOINT, NONE_planner};
+enum ENUM_AXIS{AXIS_X=0, AXIS_Y, AXIS_Z};
 
-// Target Points
+//Global variables
 double P1[] = {6.3, 12.38, 4.34, -69.36, 104.19, -11.11, -97.61};
 double P2[] = {26.38, 13.28, 4.34, -74.36, 115.62, -27.38, -112.72};
 double P3[] = {30.68, 13.28, 4.35, -79.08, 75.88, -29.50, -68.70};
@@ -59,33 +71,53 @@ double P6[] = {6.56, 28.91, -25.29, -112.69, 148.33, 48.44, -146.40};
 double P7[] = {-54.95, 25.93, 45.84, -91.25, 108.02, 14.81, -127.92};
 double P8[] = {-54.66, 7.94, 45.85, -82.96, 46.75, 19.07, -51.08};
 double P0[] = {-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40};
-
-
-
-enum ENUM_COMMAND{COMMAND_2Position, COMMAND_spring, COMMAND_Back, COMMAND_Home, NONE_comand};
-enum ENUM_PLANNER{PLANNER_CARTESIAN, PLANNER_JOINT, NONE_planner};
-enum ENUM_AXIS{AXIS_X=0, AXIS_Y, AXIS_Z};
-
-// They have all the same direction of the end effector
 double pYdir[] = {0.0, 1.0, 0.0};
 double pZdir[] = {-1.0, 0.0, 0.0};
 
-class monkeytask_test_1 : public RobotInterface
+double tenxp0[10][KUKA_DOF] = {
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40}
+};
+
+//Sequence 1 is : O, N, S, E, W, NE, SW, NW, SE, O
+
+double Sequence1[10][KUKA_DOF] = {
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40},
+		{6.3, 12.38, 4.34, -69.36, 104.19, -11.11, -97.61},
+		{-1.8, 49.67, 3.09, -91.85, -1.37, -60.46, -25.77},
+		{30.68, 13.28, 4.35, -79.08, 75.88, -29.50, -68.70},
+		{-54.95, 25.93, 45.84, -91.25, 108.02, 14.81, -127.92},
+		{26.38, 13.28, 4.34, -74.36, 115.62, -27.38, -112.72},
+		{6.56, 28.91, -25.29, -112.69, 148.33, 48.44, -146.40},
+		{-54.66, 7.94, 45.85, -82.96, 46.75, 19.07, -51.08},
+		{25.96, 32.57, 4.35, -104.19, 32.80, -43.93, -22.47},
+		{-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40}
+};
+
+class monkeytask_test_2 : public RobotInterface
 {
 public:
-	monkeytask_test_1();
-	virtual ~monkeytask_test_1();
+            monkeytask_test_2();
+    virtual ~monkeytask_test_2();
+  
+    virtual Status              RobotInit();
+    virtual Status              RobotFree();
+  
+    virtual Status              RobotStart();    
+    virtual Status              RobotStop();
+  
+    virtual Status              RobotUpdate();
+    virtual Status              RobotUpdateCore();
 
-	virtual Status              RobotInit();
-	virtual Status              RobotFree();
-
-	virtual Status              RobotStart();
-	virtual Status              RobotStop();
-
-	virtual Status              RobotUpdate();
-	virtual Status              RobotUpdateCore();
-
-	virtual int                 RespondToConsoleCommand(const string cmd, const vector<string> &args);
+    virtual int                 RespondToConsoleCommand(const string cmd, const vector<string> &args);
 
 private:
 
@@ -98,6 +130,24 @@ private:
 	void 						chatterCallback_position(const sensor_msgs::JointState & msg);
 	sKinematics                 *mSKinematicChain;
 
+	// For USB communication
+	int 						arduinoFD;
+	int 						fd;
+	ssize_t 					size;
+	struct termios 				options;
+
+	fstream					    arduinoFile;
+
+	// For file writing
+	ofstream 					myfile;
+	string 						force_fileName;
+
+	// Timing variables
+	int 						tGoing2Home;
+	int 						timeSet;
+	// For point sequence
+	int 						idxPoint;
+
 	RevoluteJointSensorGroup    mSensorsGroup;
 	RevoluteJointActuatorGroup  mActuatorsGroup;
 	KinematicChain              mKinematicChain;
@@ -106,22 +156,16 @@ private:
 
 	int                         mEndEffectorId;
 
-//	Vector                      mJointPos;
-//	Vector                      mJointPosAll;
-//	Vector                      mJointDesPos;
-//	Vector                      mJointTargetPos;
-//	Vector						mJointDesVel;
-
-
 	// My set of variables
+	Matrix 						pointSequence;
+	Matrix 						backSequence;
+
 	// Target vectors
 	Vector						BackPosition;
 	Vector 						fCartTargetPos; // Final cartesian target position
-
 	Vector						fCartTargetDirY; //Final cartesian target y direction
 	Vector						fCartTargetDirZ; //Final cartesian target z direction
 	Vector						fJointTargetPos; //Final Joint target position
-
 	Vector 						cCartTargetPos;	// Current cartesian target position
 	Vector 						cCartTargetVel; // Current cartesian target velocity
 	Vector 						cCartTargetAcc; // Current cartesian target acceleration
@@ -132,25 +176,19 @@ private:
 	Vector 						cCartPos;	// Current cartesian position
 	Vector 						cCartVel; 	// Current cartesian velocity
 	Vector 						pCartPos;	// Previous cartesian position
-
 	Vector						JointPos_handle;
 	Vector 						cJointPos;	// Current joint position
 	Vector 						cJointVel;	// Current joint velocity
 
-
 	//Direction vectors
-
 	Vector 						cCartDirX; 	// Current cartesian y direction
 	Vector 						cCartDirY; 	// Current cartesian y direction
 	Vector 						cCartDirZ; 	// Current cartesian z direction
 	Vector						cCartTargetDirY; // Target cartesian y direction
 	Vector						cCartTargetDirZ; // Target cartesian z direction
-
 	Vector 						pCartDirY; 	// Previous cartesian y direction
 	Vector 						pCartDirZ; 	// Previous cartesian z direction
 
-//	Vector						Stiffness;
-//	Vector						Damping;
 	double						Stiffness;
 	double						Damping;
 
@@ -159,6 +197,8 @@ private:
 	Vector						JointEffort_handle;
 	Vector						eeForce;
 	double 						eeForceMod;
+
+
 
 
 	// Variables for filter usage
@@ -174,6 +214,7 @@ private:
 	// Support variables
 	Vector 						J_distance2P0;
 	Vector 						J_distance2Back;
+	Vector						J_distance2Home;
 	Vector 						jP0;
 	Vector 						jBack;
 	// end of my set of variables
@@ -208,6 +249,7 @@ private:
 	double secs;
 
 	double Constant_joint;
+
 };
 
 

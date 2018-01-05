@@ -14,9 +14,9 @@
  * Public License for more details
  */
 
-#include "monkeytask_test_1.h"
+#include "monkeytask_test_2.h"
 
-
+//Global variables
 bool closed_loop=true;
 bool True_robot=true;
 bool Position_of_the_robot_recieved=false;
@@ -24,16 +24,22 @@ bool Position_of_the_robot_recieved=false;
 //For audio
 const int AMPLITUDE = 28000;
 const int SAMPLE_RATE = 44100;
+const int SAMPLE_RATE_2 = 22050;
 void audio_callback(void *user_data, Uint8 *raw_buffer, int bytes);
 void playTone();
+void playTone2();
 
-monkeytask_test_1::monkeytask_test_1()
+
+
+using namespace std;
+
+monkeytask_test_2::monkeytask_test_2()
 :RobotInterface(){
 }
-monkeytask_test_1::~monkeytask_test_1(){
+monkeytask_test_2::~monkeytask_test_2(){
 }
 
-void monkeytask_test_1::chatterCallback_position(const sensor_msgs::JointState & msg)
+void monkeytask_test_2::chatterCallback_position(const sensor_msgs::JointState & msg)
 {
 	if (True_robot)
 	{
@@ -54,13 +60,12 @@ void monkeytask_test_1::chatterCallback_position(const sensor_msgs::JointState &
 		JointEffort_handle(4)=msg.effort[4];
 		JointEffort_handle(5)=msg.effort[5];
 		JointEffort_handle(6)=msg.effort[6];
-		         cJointTORs=JointEffort_handle;
-
+		cJointTORs=JointEffort_handle;
 
 	}
 }
 
-void monkeytask_test_1::Send_Postion_To_Robot(Vector Position)
+void monkeytask_test_2::Send_Postion_To_Robot(Vector Position)
 {
 	if (True_robot)
 	{
@@ -76,9 +81,10 @@ void monkeytask_test_1::Send_Postion_To_Robot(Vector Position)
 	}
 }
 
-RobotInterface::Status monkeytask_test_1::RobotInit(){
+RobotInterface::Status monkeytask_test_2::RobotInit(){
 
 	// Resizing the vectors for my number of joints
+
 	BackPosition.Resize(KUKA_DOF);
 
 	cJointTargetPos.Resize(KUKA_DOF);
@@ -87,10 +93,6 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	cJointPos.Resize(KUKA_DOF);
 	JointPos_handle.Resize(KUKA_DOF);
 	cJointVel.Resize(KUKA_DOF);
-
-	// Vectors for torques
-	cJointTORs.Resize(KUKA_DOF);
-	JointEffort_handle.Resize(KUKA_DOF);
 
 	// Resizing the cartesian positions and direction vectors
 	fCartTargetPos.Resize(3); // Final cartesian target position
@@ -143,9 +145,12 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	mJointVelocityLimitsDT.Resize(KUKA_DOF);
 	mTargetVelocity.Resize(IK_CONSTRAINTS);
 
-	// Force variables
 
+	// Force variables
 	eeForce.Resize(3);
+	// Vectors for torques
+	cJointTORs.Resize(KUKA_DOF);
+	JointEffort_handle.Resize(KUKA_DOF);
 
 	// initialize sensor group
 	mSensorsGroup.SetSensorsList(mRobot->GetSensors());//mRobot I have it because of inheritance from class RobotInterface
@@ -274,6 +279,9 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	inputData.resize(inputDataDim);
 	Beafilter= new SGF::SavitzkyGolayFilter(inputDataDim, sgFilterOrder, sgFilterWindowL, _dt);
 
+	//Types of possible commands and trials
+	AddConsoleCommand("tenxp0");
+	AddConsoleCommand("Sequence1");
 	AddConsoleCommand("p0");
 	AddConsoleCommand("p1");
 	AddConsoleCommand("p2");
@@ -289,34 +297,9 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 
 
 	// Dynamical system parameters
-//	Stiffness[0]= -30;
-//	Stiffness[1]= -30;
-//	Stiffness[2]= -30;
-//	Damping[0] = -10;
-//	Damping[1] = -10;
-//	Damping[2] = -10;
+
 	Stiffness = -30;
 	Damping = -10;
-//	// Points:
-
-//	// Pulling position
-//	jP0(0) = 0.0;
-//	jP0(1) = 0.0;
-//	jP0(2) = 0.0;
-//	jP0(3) = -PI/2.0;
-//	jP0(4) = 0.0;
-//	jP0(5) = 0.0;
-//	jP0(6) = 0.0;
-//
-//
-//	// Back Position
-//	jBack(0) = 0.0;
-//	jBack(1) =-PI/4.0;
-//	jBack(2) = 0.0;
-//	jBack(3) = -PI/2.0;
-//	jBack(4) = 0.0;
-//	jBack(5) = -PI/4.0;
-//	jBack(6) = 0.0;
 
 	Constant_joint=1;
 
@@ -325,16 +308,16 @@ RobotInterface::Status monkeytask_test_1::RobotInit(){
 	if (True_robot)
 	{
 		pub_command_robot_real =  n->advertise<kuka_fri_bridge::JointStateImpedance>("/real_r_arm_controller/joint_imp_cmd", 3);
-		sub_position_robot = n->subscribe("/real_r_arm_pos_controller/joint_states", 3, & monkeytask_test_1::chatterCallback_position,this);
+		sub_position_robot = n->subscribe("/real_r_arm_pos_controller/joint_states", 3, & monkeytask_test_2::chatterCallback_position,this);
 	}
 
-	return STATUS_OK;
-}
-RobotInterface::Status monkeytask_test_1::RobotFree(){
-	return STATUS_OK;
-}
-RobotInterface::Status monkeytask_test_1::RobotStart(){
 
+    return STATUS_OK;
+}
+RobotInterface::Status monkeytask_test_2::RobotFree(){
+    return STATUS_OK;
+}
+RobotInterface::Status monkeytask_test_2::RobotStart(){
 	// Setting the position of all joints to 0
 	//mJointPosAll.Zero();
 	cJointPos.Zero();
@@ -377,14 +360,60 @@ RobotInterface::Status monkeytask_test_1::RobotStart(){
 		mJointVelLimitsUp(i) =  mSKinematicChain->getMaxVel(i);
 	}
 
-	cout<<"End of Robot Start"<<endl;
-	return STATUS_OK;
-}    
-RobotInterface::Status monkeytask_test_1::RobotStop(){
-	return STATUS_OK;
-}
-RobotInterface::Status monkeytask_test_1::RobotUpdate(){
+	// Opening communication with arduino
+	arduinoFD = open("/dev/ttyACM0", O_RDWR| O_NOCTTY );//| O_NOCTTY | O_NDELAY, O_RDWR| O_NOCTTY , O_RDWR | O_NONBLOCK
+	struct termios settings, oldsettings;
+	if (arduinoFD < 0)
+	{
+		perror("/dev/ttyACM0-->open()");
+		exit(EXIT_FAILURE);
 
+	}
+	tcgetattr(arduinoFD, &oldsettings);
+	memset(&settings, 0, sizeof(settings));
+
+	cfsetispeed(&settings, B1200);
+	cfsetospeed(&settings, B1200);
+	settings.c_cflag     &=  ~PARENB;            // Make 8n1
+	settings.c_cflag     &=  ~CSTOPB;
+	settings.c_cflag     &=  ~CSIZE;
+	settings.c_cflag     |=  CS8;
+	settings.c_cflag     &=  ~CRTSCTS;           // no flow control
+	settings.c_cc[VMIN]   =  1;                  // read doesn't block
+	settings.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
+	settings.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
+	/* Make raw */
+	cfmakeraw(&settings);
+	/* Flush Port, then applies attributes */
+	tcflush(arduinoFD, TCIFLUSH);
+	tcsetattr(arduinoFD,TCSANOW,&settings);
+	// Communicating success or failure
+	int _errno = errno;
+	printf("%s\n", strerror(_errno));
+	cout<<"Arduino has file descriptor number";
+	cout<<arduinoFD<<endl;
+
+
+
+
+
+	// FILE TXT--> name is date and time
+	time_t t = time(0);
+	struct tm *now = localtime(&t);
+	cout << (now->tm_year + 1900) << '-' << (now->tm_mon + 1) << '-' << (now->tm_mday)<<endl;
+	char currentDateTime[50];
+	strftime(currentDateTime, sizeof(currentDateTime), "%Y - %m - %d. %X", now);
+    myfile.open (currentDateTime);
+    cout<<myfile.is_open()<<endl;
+
+
+	cout<<"End of Robot Start"<<endl;
+    return STATUS_OK;
+}    
+RobotInterface::Status monkeytask_test_2::RobotStop(){
+    return STATUS_OK;
+}
+RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 	ros::spinOnce();
 
 	//Local variables
@@ -412,6 +441,11 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		if (ros::Time::now().toSec()-secs>1)
 		{	// Play a tone at 440 Hz
 			playTone();
+			// Writing on arduino
+			char mywrite[1];
+			mywrite[0]= 1;
+			size = write(arduinoFD, &mywrite, sizeof(mywrite));
+			cout<<size<<endl;
 			// Writing joints
 			mSKinematicChain->setJoints(cJointPos.Array());
 			// Reading end-effector pose and orientation
@@ -424,13 +458,17 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		}
 		break;
 	case COMMAND_Back:
-		fJointTargetPos = BackPosition;
+		fJointTargetPos = pointSequence.GetRow(idxPoint-1, fJointTargetPos);
 		mPlanner = PLANNER_JOINT;
 		break;
 	case COMMAND_Home:
 		mPlanner = PLANNER_JOINT;
 		fJointTargetPos.Zero();
 		break;
+	case COMMAND_Wait4Go:
+			mPlanner = PLANNER_JOINT;
+			mSKinematicChain->setJoints(fJointTargetPos.Array());
+			break;
 	}
 
 
@@ -439,12 +477,11 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 	// PLANNER CARTESIAN implements the impedance control with a stiffness and damping factor
 	case PLANNER_CARTESIAN:
 
-
 		// Time scale of the loop:
 		// p --> t-1
 		// c --> t
 		// d --> t+1
-		cout<<"IN PLANNER CARTESIAN"<<endl;
+		//cout<<"IN PLANNER CARTESIAN"<<endl;
 
 		//Dealing with Jacobian
 		//NB: mJacobian3 is NOT the input, is the variable in which the computed Jacobian is written, it is a pointer
@@ -461,12 +498,20 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 			mJacobian9.SetRow(lJacobianDirZ.GetRow(i), i+6);
 		}
 
-		//cout<<"Joint torques"<<endl;
-		//cout<<cJointTORs<<endl;
+		// Force modulus
 		eeForce = mJacobian3*cJointTORs;
+		//eeForceMod = eeForce.Norm();
 		eeForceMod = eeForce.Norm();
-		cout<<eeForceMod<<endl;
-		//cout<<eeForce<<endl;
+
+		myfile << eeForce[0];
+		myfile << ",";
+		myfile << eeForce[1];
+		myfile << ",";
+		myfile << eeForce[2];
+		myfile << ",";
+		myfile << 2;
+		myfile << endl;
+
 
 		//Updating the variables for current cartesian and joint position for next cycle
 		mSKinematicChain->getEndPos(cCartPos.Array());
@@ -487,6 +532,9 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		copyVector(1)=outputData(1);
 		copyVector(2)=outputData(2);
 		cCartVel.SetSubVector(0, copyVector);
+
+
+
 
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%%%%%% Dynamic system %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -530,11 +578,6 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		mSKinematicChain->getEndDirAxis(AXIS_Y, cCartDirY.Array());
 		mSKinematicChain->getEndDirAxis(AXIS_Z, cCartDirZ.Array());
 
-		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-		// %%%%%%%%%%%%%%%%%%%%%%%%%% Reading force %%%%%%%%%%%%%%%%%%%%%%%%%%
-		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		// %%%%%%%%%%%%%%%%%%%%% Check for distance condition %%%%%%%%%%%%%%%%
@@ -549,18 +592,45 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 		break;
 
 	case PLANNER_JOINT:
-		cout<<fJointTargetPos*(180/PI)<<endl;
 		// If the Planner is held in the joint space joint values are directly updated
 
 		//My implementation
-		cout<<"IN PLANNER JOINT"<<endl;
+		//cout<<"IN PLANNER JOINT"<<endl;
 		// Target position in joint space
 		cJointTargetPos = cJointPos + (fJointTargetPos-cJointPos)*_dt*10*Constant_joint;
 		// Readin end effector pose
 		mSKinematicChain->getEndPos(cCartPos.Array());
+		// Force modulus
+		eeForce = mJacobian3*cJointTORs;
+		//eeForceMod = eeForce.Norm();
+		eeForceMod = eeForce.Norm();
+
 
 		switch (mCommand){
+		case NONE_comand:
+			myfile << eeForce[0];
+			myfile << ",";
+			myfile << eeForce[1];
+			myfile << ",";
+			myfile << eeForce[2];
+			myfile << ",";
+			myfile << 0;
+			myfile << endl;
+		break;
+
 		case COMMAND_2Position:
+
+			// Sending trigger to file
+			myfile << eeForce[0];
+			myfile << ",";
+			myfile << eeForce[1];
+			myfile << ",";
+			myfile << eeForce[2];
+			myfile << ",";
+			myfile << 1;
+			myfile << endl;
+
+
 			// Going to target point
 			J_distance2P0 = cJointTargetPos-fJointTargetPos;
 			if (J_distance2P0.Norm() < 0.5){
@@ -577,23 +647,97 @@ RobotInterface::Status monkeytask_test_1::RobotUpdate(){
 
 			break;
 		case COMMAND_Back:
+
+			myfile << eeForce[0];
+			myfile << ",";
+			myfile << eeForce[1];
+			myfile << ",";
+			myfile << eeForce[2];
+			myfile << ",";
+			myfile << 0;
+			myfile << endl;
+
 			// Going back to the original target point after the monkey pulled
-			Constant_joint=2;
+			Constant_joint=1;
 			J_distance2Back = cJointPos-fJointTargetPos;
+
 			if (J_distance2Back.Norm() < 0.1 )
 			{
-				Constant_joint=1;
 				mCommand=COMMAND_Home;
 			}
+			break;
+
+		case COMMAND_Home:
+			//Writing force file
+			myfile << eeForce[0];
+			myfile << ",";
+			myfile << eeForce[1];
+			myfile << ",";
+			myfile << eeForce[2];
+			myfile << ",";
+			myfile << 0;
+			myfile << endl;
+
+			// Going back to the original target point after the monkey pulled
+			Constant_joint=1;
+			J_distance2Home = cJointPos-fJointTargetPos;
+			//cout<<fJointTargetPos<<endl;
+			if (J_distance2Home.Norm() < 0.1 )
+			{
+				if (idxPoint < 10)
+					mCommand=COMMAND_Wait4Go;
+			}
+			break;
+
+		case COMMAND_Wait4Go:
+
+			cout<<"Waiting for command"<<endl;
+			int readFlag = 1;
+			int buffersize = 1;
+			char readBytes[buffersize];
+
+			// Empty the buffer
+			char trashBytes[100000];
+			//qui
+
+			size = read(arduinoFD, &trashBytes, 100000);
+
+			// Wait for button
+			while(readFlag && idxPoint<10){//change
+				myfile << eeForce[0] ;
+				myfile << ",";
+				myfile << eeForce[1];
+				myfile << ",";
+				myfile << endl;
+				myfile << eeForce[2];
+				myfile << ",";
+				myfile << 0;
+
+				//qui
+				size = read(arduinoFD, &readBytes, buffersize);
+
+				if (readBytes[0]=='N'){//readBytes[0]
+					cout<<"I read N and I switch to 2Position"<<endl;
+					fJointTargetPos = pointSequence.GetRow(idxPoint, fJointTargetPos);
+					cout<<fJointTargetPos<<endl;
+					mCommand = COMMAND_2Position;
+					idxPoint = idxPoint + 1;
+					cout<<idxPoint<<endl;
+					readFlag = 0;
+					playTone2();
+
+
+					}
+				}
 			break;
 
 
 		}
 	}
-	return STATUS_OK;
-}
-RobotInterface::Status monkeytask_test_1::RobotUpdateCore(){
 
+    return STATUS_OK;
+}
+RobotInterface::Status monkeytask_test_2::RobotUpdateCore(){
 	ros::spinOnce();
 
 	if (True_robot==false)
@@ -612,123 +756,51 @@ RobotInterface::Status monkeytask_test_1::RobotUpdateCore(){
 	mActuatorsGroup.WriteActuators();
 	mKinematicChain.Update();
 
-
-	return STATUS_OK;
+    return STATUS_OK;
 }
-
-int monkeytask_test_1::RespondToConsoleCommand(const string cmd, const vector<string> &args){
+int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<string> &args){
 
 	cout<<"Write your command"<<endl;
-
-	if(cmd=="p0"){
+	if(cmd=="tenxp0"){
 		Constant_joint=1;
+		int nP = 10;
+		idxPoint=0;
+		pointSequence.Resize(nP, KUKA_DOF);
+		backSequence.Resize(nP, KUKA_DOF);
 
-		// set target point in joint space
-		fJointTargetPos.Set(P0, KUKA_DOF);
-		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
+		pointSequence.Set(*tenxp0, nP, KUKA_DOF);
+		pointSequence.Mult((PI/180.0), pointSequence);
 
-		BackPosition.Set(P0,KUKA_DOF);
-		BackPosition.Mult((PI/180.0), BackPosition);
+		backSequence.Set(*tenxp0, nP, KUKA_DOF);
+		backSequence.Mult((PI/180.0), backSequence);
 
 		//Start the control chain
-		mCommand = COMMAND_2Position;
+		mPlanner = PLANNER_JOINT;
+		mCommand = COMMAND_Wait4Go;
+		cout<<"switched to command wait4go"<<endl;
 
 	}
-	else if(cmd=="p1"){
-		// set target point in joint space
-		Constant_joint=1;
-		fJointTargetPos.Set(P1, KUKA_DOF);
-		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-		BackPosition.Set(P1,KUKA_DOF);
-		BackPosition.Mult((PI/180.0), BackPosition);
-		//Start the contrl chain
-		mCommand = COMMAND_2Position;
-	}
-	else if(cmd=="p2"){
-		Constant_joint=1;
-		// set target point in joint space
-		fJointTargetPos.Set(P2, KUKA_DOF);
-		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-		BackPosition.Set(P2,KUKA_DOF);
-		BackPosition.Mult((PI/180.0), BackPosition);
-		//Start the contrl chain
-		mCommand = COMMAND_2Position;
+	if(cmd=="Sequence1"){
+			Constant_joint=1;
+			int nP = 10;
+			idxPoint=0;
+			pointSequence.Resize(nP, KUKA_DOF);
+			backSequence.Resize(nP, KUKA_DOF);
 
-	}
-	else if(cmd=="p3"){
-		Constant_joint=1;
-		// set target point in joint space
-		fJointTargetPos.Set(P3, KUKA_DOF);
-		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-		BackPosition.Set(P3,KUKA_DOF);
-		BackPosition.Mult((PI/180.0), BackPosition);
-		//Start the contrl chain
-		mCommand = COMMAND_2Position;
+			pointSequence.Set(*Sequence1, nP, KUKA_DOF);
+			pointSequence.Mult((PI/180.0), pointSequence);
 
-	}
+			backSequence.Set(*Sequence1, nP, KUKA_DOF);
+			backSequence.Mult((PI/180.0), backSequence);
 
-	else if(cmd=="p4"){
-		Constant_joint=1;
-		// set target point in joint space
-		fJointTargetPos.Set(P4, KUKA_DOF);
-		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-		BackPosition.Set(P4,KUKA_DOF);
-		BackPosition.Mult((PI/180.0), BackPosition);
-		//Start the contrl chain
-		mCommand = COMMAND_2Position;
+			//Start the control chain
+			mPlanner = PLANNER_JOINT;
+			mCommand = COMMAND_Wait4Go;
+			cout<<"switched to command wait4go"<<endl;
 
-	}
-
-	else if(cmd=="p5"){
-		Constant_joint=1;
-		// set target point in joint space
-		fJointTargetPos.Set(P5, KUKA_DOF);
-		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-		BackPosition.Set(P5,KUKA_DOF);
-		BackPosition.Mult((PI/180.0), BackPosition);
-		//Start the contrl chain
-		mCommand = COMMAND_2Position;
-
-	}
-	else if(cmd=="p6"){
-		Constant_joint=1;
-		// set target point in joint space
-		fJointTargetPos.Set(P6, KUKA_DOF);
-		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-		BackPosition.Set(P6,KUKA_DOF);
-		BackPosition.Mult((PI/180.0), BackPosition);
-		//Start the contrl chain
-		mCommand = COMMAND_2Position;
-
-
-	}
-	else if(cmd=="p7"){
-		Constant_joint=1;
-		// set target point in joint space
-		fJointTargetPos.Set(P7, KUKA_DOF);
-		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-		BackPosition.Set(P7,KUKA_DOF);
-		BackPosition.Mult((PI/180.0), BackPosition);
-		//Start the contrl chain
-		mCommand = COMMAND_2Position;
-
-
-	}
-	else if(cmd=="p8"){
-		Constant_joint=1;
-		// set target point in joint space
-		fJointTargetPos.Set(P8, KUKA_DOF);
-		fJointTargetPos.Mult((PI/180.0), fJointTargetPos);
-		BackPosition.Set(P8,KUKA_DOF);
-		BackPosition.Mult((PI/180.0), BackPosition);
-		//Start the contrl chain
-		mCommand = COMMAND_2Position;
-	}
-
-
+		}
 
 	return STATUS_OK;
-	//return 0;
 }
 
 void audio_callback(void *user_data, Uint8 *raw_buffer, int bytes)
@@ -771,12 +843,36 @@ void playTone(){
     SDL_CloseAudio();
 
 }
+void playTone2(){
+	cout<< "here"<<endl;
+	cout<<SDL_Init(SDL_INIT_AUDIO)<<endl;
 
+    if(SDL_Init(SDL_INIT_AUDIO) != 0) SDL_Log("Failed to initialize SDL: %s", SDL_GetError());
 
+    int sample_nr = 0;
 
+    SDL_AudioSpec want;
+    want.freq = SAMPLE_RATE_2; // number of samples per second
+    want.format = AUDIO_S16SYS; // sample type (here: signed short i.e. 16 bit)
+    want.channels = 1; // only one channel
+    want.samples = 2048; // buffer-size
+    want.callback = audio_callback; // function SDL calls periodically to refill the buffer
+    want.userdata = &sample_nr; // counter, keeping track of current sample number
+
+    SDL_AudioSpec have;
+    if(SDL_OpenAudio(&want, &have) != 0) SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to open audio: %s", SDL_GetError());
+    if(want.format != have.format) SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to get the desired AudioSpec");
+
+    SDL_PauseAudio(0); // start playing sound
+    SDL_Delay(200); // wait while sound is playing
+    SDL_PauseAudio(1); // stop playing sound
+
+    SDL_CloseAudio();
+
+}
 extern "C"{
-// These two "C" functions manage the creation and destruction of the class
-monkeytask_test_1* create(){return new monkeytask_test_1();}
-void destroy(monkeytask_test_1* module){delete module;}
+    // These two "C" functions manage the creation and destruction of the class
+    monkeytask_test_2* create(){return new monkeytask_test_2();}
+    void destroy(monkeytask_test_2* module){delete module;}
 }
 
