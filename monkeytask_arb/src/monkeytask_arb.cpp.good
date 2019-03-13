@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "monkeytask_test_2.h"
+#include "monkeytask_arb.h"
 
 //Global variables
 bool closed_loop=true;
@@ -32,13 +32,13 @@ void playToneStart();
 
 using namespace std;
 
-monkeytask_test_2::monkeytask_test_2()
+monkeytask_arb::monkeytask_arb()
 :RobotInterface(){
 }
-monkeytask_test_2::~monkeytask_test_2(){
+monkeytask_arb::~monkeytask_arb(){
 }
 
-void monkeytask_test_2::chatterCallback_position(const sensor_msgs::JointState & msg)
+void monkeytask_arb::chatterCallback_position(const sensor_msgs::JointState & msg)
 {
 	if (True_robot)
 	{
@@ -64,7 +64,7 @@ void monkeytask_test_2::chatterCallback_position(const sensor_msgs::JointState &
 	}
 }
 
-void monkeytask_test_2::Send_Postion_To_Robot(Vector Position)
+void monkeytask_arb::Send_Postion_To_Robot(Vector Position)
 {
 	if (True_robot)
 	{
@@ -80,7 +80,7 @@ void monkeytask_test_2::Send_Postion_To_Robot(Vector Position)
 	}
 }
 
-RobotInterface::Status monkeytask_test_2::RobotInit(){
+RobotInterface::Status monkeytask_arb::RobotInit(){
 
 	// Resizing the vectors for my number of joints
 
@@ -285,10 +285,8 @@ RobotInterface::Status monkeytask_test_2::RobotInit(){
 	AddConsoleCommand("SixPointSequence");
 	AddConsoleCommand("ThreePointSequence");
 	AddConsoleCommand("FourPointSequence");
-	AddConsoleCommand("FourPointUpSequence");
 	AddConsoleCommand("FivePointSequence");
 	AddConsoleCommand("chair");
-	AddConsoleCommand("FixedPoint");
 	AddConsoleCommand("p0");
 	AddConsoleCommand("p1");
 	AddConsoleCommand("p2");
@@ -298,7 +296,6 @@ RobotInterface::Status monkeytask_test_2::RobotInit(){
 	AddConsoleCommand("p6");
 	AddConsoleCommand("p7");
 	AddConsoleCommand("p8");
-	AddConsoleCommand("sud");
 
 	mPlanner =NONE_planner;
 	mCommand = NONE_comand;
@@ -348,16 +345,16 @@ RobotInterface::Status monkeytask_test_2::RobotInit(){
 	if (True_robot)
 	{
 		pub_command_robot_real =  n->advertise<kuka_fri_bridge::JointStateImpedance>("/real_r_arm_controller/joint_imp_cmd", 3);
-		sub_position_robot = n->subscribe("/real_r_arm_pos_controller/joint_states", 3, & monkeytask_test_2::chatterCallback_position,this);
+		sub_position_robot = n->subscribe("/real_r_arm_pos_controller/joint_states", 3, & monkeytask_arb::chatterCallback_position,this);
 	}
 
 
     return STATUS_OK;
 }
-RobotInterface::Status monkeytask_test_2::RobotFree(){
+RobotInterface::Status monkeytask_arb::RobotFree(){
     return STATUS_OK;
 }
-RobotInterface::Status monkeytask_test_2::RobotStart(){
+RobotInterface::Status monkeytask_arb::RobotStart(){
 
 
 	//system("modprobe usbserial");
@@ -526,7 +523,7 @@ RobotInterface::Status monkeytask_test_2::RobotStart(){
 	printf("BETTER THAN YESTERDAY, BUT WORSE THAN TOMORROW!\n");
 	printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
 
-	cout<<"do i pass from here?"<<endl;
+
 	// FILE TXT--> name is date and time
 	time_t t = time(0);
 	struct tm *now = localtime(&t);
@@ -538,31 +535,21 @@ RobotInterface::Status monkeytask_test_2::RobotStart(){
     myfile.open (newName);
     cout<<myfile.is_open()<<endl;
     // Writing labels
-    myfile<<"Fx"<<"," <<"Fy"<<","<<"Fz"<<","<<"Trigger"<<","<<"Time[s]"<<","<<"Time[us]"<<","<<"PositionID"<<","<<"px"<<","<<"py"<<","<<"pz"<<endl;
+    myfile<<"Fx"<<"," <<"Fy"<<","<<"Fz"<<","<<"Trigger"<<","<<"Time"<<","<<"PositionID"<<","<<"px"<<","<<"py"<<","<<"pz"<<endl;
 
-    gettimeofday(&t0, NULL);
 
 	cout<<"End of Robot Start"<<endl;
     return STATUS_OK;
 }    
-RobotInterface::Status monkeytask_test_2::RobotStop(){
+RobotInterface::Status monkeytask_arb::RobotStop(){
     return STATUS_OK;
 }
-RobotInterface::Status monkeytask_test_2::RobotUpdate(){
+RobotInterface::Status monkeytask_arb::RobotUpdate(){
 	ros::spinOnce();
 
 	//Local variables
 	float distance2target;
 	float distance2target_x;
-	long seconds, useconds;
-	timeval curTime;
-	int milli;
-	struct tm *now;
-	char thisInstantseconds[50];
-	char thisInstant[70];
-	char forcewrite[8];
-
-
 	// Setting the joints to values currently stored in mJointPosAll
 	//mSKinematicChain->setJoints(mJointPosAll.Array());
 	mSKinematicChain->setJoints(cJointPos.Array());
@@ -571,27 +558,26 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 	mSKinematicChain->getEndDirAxis(AXIS_X, cCartDirX.Array());
 	mSKinematicChain->getEndDirAxis(AXIS_Y, cCartDirY.Array());
 	mSKinematicChain->getEndDirAxis(AXIS_Z, cCartDirZ.Array());
+	//	cCartDirX.Print("cCartDirX");
+	//	cCartDirY.Print("cCartDirY");
+	//	cCartDirZ.Print("cCartDirZ");
 
 
-	//This is executed every time: Depending on the command I set:
-	// - The planner: joint or cartesian
-	// - The target position: home, back, position
-
+	//Setting different planners for different commands
 	switch(mCommand){
 	case COMMAND_2Position :
 		mPlanner = PLANNER_JOINT;
 		break;
 	case COMMAND_spring :
-		// In the case of the impedance phase, after an elapsed time a byte equal to 1 is sent to the Arduino to
-		// signal the beginning of the impedance control phase. The current point is read and kept as a target,
-		// and stiffness and damping parameters are set. Command is then set to NONE, so that all of this is
-		// done just once at switching between phases.
 		if (ros::Time::now().toSec()-secs>1 )
 		{
+
 			// Writing on arduino
 			char mywrite[1];
 			mywrite[0]= 1;
 			size = write(arduinoFD, &mywrite, sizeof(mywrite));
+
+
 			// Writing joints
 			mSKinematicChain->setJoints(cJointPos.Array());
 			// Reading end-effector pose and orientation
@@ -601,33 +587,38 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 			mSKinematicChain->getEndDirAxis(AXIS_Z, cCartTargetDirZ.Array());
 			// Setting planner
 			Stiffness=Stiffness1;
+
 			Damping=Damping1;
 			gain_ori=gain_ori1;
 			mPlanner = PLANNER_CARTESIAN;//Add termination condition in planner
 			mCommand = NONE_comand;
+
 			// Play a tone at 440 Hz
 			playToneGo();
+
+
 		}
 		break;
-
 	case COMMAND_Back:
 		fJointTargetPos = backSequence.GetRow(idxPoint-1, fJointTargetPos);
 		if(idxPoint == 0){
+			cout<<"I set the index at "<< nP<<endl;
 			fJointTargetPos = backSequence.GetRow(nP-1, fJointTargetPos);
 		}
+		cout<<"back to position: "<<idxPoint<<"  "<<fJointTargetPos<<endl;
 		mPlanner = PLANNER_JOINT;
-		break;
+		//cout<<"commandback"<<endl;
+		// hw modifcation for Sina was to comment the line planner joint and uncomment the following 2 lines
+		//Stiffness=Stiffness2;
+		//Damping=Damping2;
+		//gain_ori=gain_ori2;
+	//	mPlanner = PLANNER_CARTESIAN;
 
+		break;
 	case COMMAND_Home:
-		/*mPlanner = PLANNER_JOINT;
-		fJointTargetPos.Zero();*/
-		fJointTargetPos = backSequence.GetRow(idxPoint-1, fJointTargetPos);
-				if(idxPoint == 0){
-					fJointTargetPos = backSequence.GetRow(nP-1, fJointTargetPos);
-				}
-				mPlanner = PLANNER_JOINT;
+		mPlanner = PLANNER_JOINT;
+		fJointTargetPos.Zero();
 		break;
-
 	case COMMAND_Wait4Go:
 			mPlanner = PLANNER_JOINT;
 			mSKinematicChain->setJoints(fJointTargetPos.Array());
@@ -635,21 +626,19 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 	}
 
 
-	// Added on 13.09.2018
-
 	time_t t = time(0);
-	gettimeofday(&curTime, NULL);
-	milli= curTime.tv_usec / 1000;
-	now = localtime(&t);
-	strftime(thisInstantseconds, sizeof(thisInstantseconds), "%X", now);
-	sprintf(thisInstant, "%s:%d", thisInstantseconds, milli);
+	struct tm *now = localtime(&t);
+	char thisInstant[50];
+	strftime(thisInstant, sizeof(thisInstant), "%X", now);
+	char forcewrite[8];
 
+	 //Force modulus
+//	eeForce = mJacobian3*cJointTORs;
+//	//eeForceMod = eeForce.Norm();
+//	eeForceMod = eeForce.Norm();
+//	eeForceModInt = floor(eeForceMod*(maxeeForceInt-mineeForceInt)/(maxeeForceDouble-mineeForceDouble) - mineeForceDouble + mineeForceInt);
+//	write(arduinoFD, &eeForceModInt, 1);
 
-
-	// Alternative approach
-	gettimeofday(&currentTime, NULL);
-	seconds  = currentTime.tv_sec  - t0.tv_sec;
-	useconds = currentTime.tv_usec - t0.tv_usec;
 
 
 	// Definition and implementation of type of movement
@@ -678,25 +667,13 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 			mJacobian9.SetRow(lJacobianDirZ.GetRow(i), i+6);
 		}
 
-		// Force modulus
+//		// Force modulus
 		eeForce = mJacobian3*cJointTORs;
-		// Correction of the force
-		JT = mJacobian3.Transpose();
-		temp_JJT = mJacobian3*JT;
-		temp_JJTI = temp_JJT.Inverse();
-		temp_JJT.IsInverseOk();
-		//if (temp_JJT.IsInverseOk()) cout<< "siamosalvi"<<endl;
-		//else if (!temp_JJT.IsInverseOk()) cout<< "siamofottuti"<<endl;
-
-		eeForceCorrected = temp_JJTI*eeForce;
-		eeForceCORRECT= JT*cJointTORs;
-
-
 		//eeForceMod = eeForce.Norm();
 		eeForceMod = eeForce.Norm();
 		eeForceModInt = floor(eeForceMod*(maxeeForceInt-mineeForceInt)/(maxeeForceDouble-mineeForceDouble) - mineeForceDouble + mineeForceInt);
 		write(arduinoFD, &eeForceModInt, 1);
-		//cout<<eeForceMod<<endl;
+		cout<<eeForceMod<<endl;
 
 		//Updating the variables for current cartesian and joint position for next cycle
 		mSKinematicChain->getEndPos(cCartPos.Array());
@@ -775,17 +752,10 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 		switch(mCommand){
 		case NONE_comand:
 
-			// Writing force to file: we are in impedance phase: it is a good idea
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," ;
-			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," ;
-			myfile << eeForceCorrected[0] <<","<< eeForceCorrected[1] << "," << eeForceCorrected[2] << "," ;
-			myfile << eeForceCORRECT[0] <<","<< eeForceCORRECT[1] << "," << eeForceCORRECT[2] << ",";
-			myfile << cJointTORs[0] <<","<< cJointTORs[1] << "," << cJointTORs[2]<< "," <<cJointTORs[3]<< ","<<cJointTORs[4]<< ","<<cJointTORs[5]<< ","<<cJointTORs[6]<< ",";
-			myfile << mJacobian3.GetRow(0)<<"," <<mJacobian3.GetRow(1)<<","<<mJacobian3.GetRow(2)<<",";
-			myfile << cJointPos[0] <<","<< cJointPos[1] << "," << cJointPos[2]<< "," <<cJointPos[3]<< ","<<cJointPos[4]<< ","<<cJointPos[5]<< ","<<cJointPos[6]<<",";
-			myfile<< 2 << "," ;
-			myfile<< seconds << "," << useconds << ","<< idxPoint << ",";
+			// Writing force to file
+			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," << thisInstant << "," << idxPoint << ",";
 			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
+			//cout<<distance2target_x<<endl;
 
 			// Condition for going back home:
 			// - The robot has been pulled of 10 cm OR 00 seconds elapsed without any accomplishment from the monkey
@@ -823,20 +793,9 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 
 		case COMMAND_Back:
 
-			// Writing force to file: we are going to the back position, it is a good idea
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
-			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," ;
-			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," ;
-			myfile << eeForceCorrected[0] <<","<< eeForceCorrected[1] << "," << eeForceCorrected[2] << "," ;
-			myfile << eeForceCORRECT[0] <<","<< eeForceCORRECT[1] << "," << eeForceCORRECT[2] << ",";
-			myfile << cJointTORs[0] <<","<< cJointTORs[1] << "," << cJointTORs[2]<< "," <<cJointTORs[3]<< ","<<cJointTORs[4]<< ","<<cJointTORs[5]<< ","<<cJointTORs[6]<< ",";
-			myfile << mJacobian3.GetRow(0)<<"," <<mJacobian3.GetRow(1)<<","<<mJacobian3.GetRow(0)<<",";
-			myfile << cJointPos[0] <<","<< cJointPos[1] << "," << cJointPos[2]<< "," <<cJointPos[3]<< ","<<cJointPos[4]<< ","<<cJointPos[5]<< ","<<cJointPos[6]<<",";
-			myfile<< 0 << "," ;
-			myfile<< seconds << "," << useconds << ","<< idxPoint << ",";
+			// Writing force to file
+			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
 			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
-
 			// Going back to the original target point after the monkey pulled
 			if((distance2target_x)< 0.001 ){ // in the final application I need a major sign
 					mCommand = COMMAND_Home;
@@ -883,13 +842,12 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 
 
 
-
-
+		//time_t thisInstant  = time(0);
 		switch (mCommand){
 		case NONE_comand:
 			// Writing force to file
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
-			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
+			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
+			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
 			// attempt to write
 			//forceValue= eeForceMod*maxDACScale/maxForceValue;
 			//size = write(DACFD, &forceValue, 8);
@@ -899,21 +857,10 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 		case COMMAND_2Position:
 
 			// Sending trigger to file
-			// Writing force to file: I am going to position, it is a good idea
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 1 << ","<<thisInstant << "," << idxPoint << ",";
-			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
-
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," ;
-
-			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," ;
-			myfile << eeForceCorrected[0] <<","<< eeForceCorrected[1] << "," << eeForceCorrected[2] << "," ;
-			myfile << eeForceCORRECT[0] <<","<< eeForceCORRECT[1] << "," << eeForceCORRECT[2] << ",";
-			myfile << cJointTORs[0] <<","<< cJointTORs[1] << "," << cJointTORs[2]<< "," <<cJointTORs[3]<< ","<<cJointTORs[4]<< ","<<cJointTORs[5]<< ","<<cJointTORs[6]<< ",";
-			myfile << mJacobian3.GetRow(0)<<"," <<mJacobian3.GetRow(1)<<","<<mJacobian3.GetRow(0)<<",";
-			myfile << cJointPos[0] <<","<< cJointPos[1] << "," << cJointPos[2]<< "," <<cJointPos[3]<< ","<<cJointPos[4]<< ","<<cJointPos[5]<< ","<<cJointPos[6]<<",";
-			myfile<< 1 << "," ;
-			myfile<< seconds << "," << useconds << ","<< idxPoint << ",";
+			// Writing force to file
+			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 1 << ","<<thisInstant << "," << idxPoint << ",";
 			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
+
 			// Going to target point
 			J_distance2P0 = cJointTargetPos-fJointTargetPos;
 
@@ -937,31 +884,24 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 		case COMMAND_Back:
 
 			// Writing force to file
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
-			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
-
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," ;
-
-			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," ;
-			myfile << eeForceCorrected[0] <<","<< eeForceCorrected[1] << "," << eeForceCorrected[2] << "," ;
-			myfile << eeForceCORRECT[0] <<","<< eeForceCORRECT[1] << "," << eeForceCORRECT[2] << ",";
-			myfile << cJointTORs[0] <<","<< cJointTORs[1] << "," << cJointTORs[2]<< "," <<cJointTORs[3]<< ","<<cJointTORs[4]<< ","<<cJointTORs[5]<< ","<<cJointTORs[6]<< ",";
-			myfile << mJacobian3.GetRow(0)<<"," <<mJacobian3.GetRow(1)<<","<<mJacobian3.GetRow(0)<<",";
-			myfile << cJointPos[0] <<","<< cJointPos[1] << "," << cJointPos[2]<< "," <<cJointPos[3]<< ","<<cJointPos[4]<< ","<<cJointPos[5]<< ","<<cJointPos[6]<<",";
-			myfile<< 0 << "," ;
-			myfile<< seconds << "," << useconds << ","<< idxPoint << ",";
+			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
 			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
+
 			// Going back to the original target point after the monkey pulled
 			Constant_joint=1;
 			J_distance2Back = cJointPos-fJointTargetPos;
 
 			if (J_distance2Back.Norm() < 0.1 )
 			{
-				mCommand=COMMAND_Home;
+				// mCommand=COMMAND_Home; commented by arb
 			}
 			break;
 
 		case COMMAND_Home:
+			//Writing force file
+			// Writing force to file
+			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << "," ;
+			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
 
 			// Going back to the original target point after the monkey pulled
 			Constant_joint=1;
@@ -977,6 +917,47 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 			}
 			break;
 
+/*
+		case COMMAND_Home: // switched by arb on 10/9/2018
+
+			cout<<"Waiting for command"<<endl;
+
+			int readFlag = 1;
+			int buffersize = 1;
+			char readBytes[buffersize];
+
+			// Empty the buffer
+			char trashBytes[100000];
+			size = read(arduinoFD, &trashBytes, 100000);
+			// Wait for button
+			while(readFlag){//change
+
+				// Writing force to file
+				myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
+				myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
+
+				size = read(arduinoFD, &readBytes, buffersize);
+
+				if (readBytes[0]=='N'){//readBytes[0]
+					cout<<"Going to position"<<endl;
+					fJointTargetPos = pointSequence.GetRow(idxPoint, fJointTargetPos);
+					mCommand = COMMAND_2Position;
+					readFlag = 0;
+
+					// This part has been added by Elvira to send an output to the Arduino
+
+					char mywrite[1];
+					//mywrite[0]= 3;
+					//size = write(arduinoFD, &mywrite, sizeof(mywrite));
+
+					modidxPoint = idxPoint+4;
+					cout<<"Point"<<modidxPoint<<endl;
+					playToneStart();
+					size = write(arduinoFD, &modidxPoint, sizeof(mywrite));
+					}
+				}
+			break;
+*/
 		case COMMAND_Wait4Go:
 
 			cout<<"Waiting for command"<<endl;
@@ -991,6 +972,10 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 			// Wait for button
 			while(readFlag){//change
 
+				// Writing force to file
+				myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
+				myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
+
 				size = read(arduinoFD, &readBytes, buffersize);
 
 				if (readBytes[0]=='N'){//readBytes[0]
@@ -999,7 +984,12 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 					mCommand = COMMAND_2Position;
 					readFlag = 0;
 
+					// This part has been added by Elvira to send an output to the Arduino
+
 					char mywrite[1];
+					//mywrite[0]= 3;
+					//size = write(arduinoFD, &mywrite, sizeof(mywrite));
+
 					modidxPoint = idxPoint+4;
 					cout<<"Point"<<modidxPoint<<endl;
 					playToneStart();
@@ -1010,10 +1000,9 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 		}
 	}
 
-
     return STATUS_OK;
 }
-RobotInterface::Status monkeytask_test_2::RobotUpdateCore(){
+RobotInterface::Status monkeytask_arb::RobotUpdateCore(){
 	ros::spinOnce();
 
 	if (True_robot==false)
@@ -1034,7 +1023,7 @@ RobotInterface::Status monkeytask_test_2::RobotUpdateCore(){
 
     return STATUS_OK;
 }
-int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<string> &args){
+int monkeytask_arb::RespondToConsoleCommand(const string cmd, const vector<string> &args){
 
 	cout<<"Write your command"<<endl;
 	if(cmd=="tenxp0"){
@@ -1134,26 +1123,6 @@ int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<st
 				cout<<"switched to command wait4go"<<endl;
 
 			}
-	if(cmd=="FourPointUpSequence"){
-					Constant_joint=1;
-					nP = 4;
-					idxPoint=0;
-					pointSequence.Resize(nP, KUKA_DOF);
-					backSequence.Resize(nP, KUKA_DOF);
-
-					pointSequence.Set(*FourPointUpSequence, nP, KUKA_DOF);
-					pointSequence.Mult((PI/180.0), pointSequence);
-
-					backSequence.Set(*FourPointUpSequence, nP, KUKA_DOF);
-					backSequence.Mult((PI/180.0), backSequence);
-
-
-					//Start the control chain
-					mPlanner = PLANNER_JOINT;
-					mCommand = COMMAND_Wait4Go;
-					cout<<"Switched to command wait4go"<<endl;
-
-				}
 	if(cmd=="FivePointSequence"){
 				Constant_joint=1;
 				nP = 5;
@@ -1194,47 +1163,6 @@ int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<st
 					cout<<"switched to command wait4go"<<endl;
 
 				}
-	if(cmd=="FixedPoint"){
-						Constant_joint=1;
-						nP = 1;
-						idxPoint=0;
-						pointSequence.Resize(nP, KUKA_DOF);
-						backSequence.Resize(nP, KUKA_DOF);
-
-						pointSequence.Set(*FixedPoint, nP, KUKA_DOF);
-						pointSequence.Mult((PI/180.0), pointSequence);
-
-						backSequence.Set(*FixedPointBack, nP, KUKA_DOF);
-						backSequence.Mult((PI/180.0), backSequence);
-
-
-						//Start the control chain
-						mPlanner = PLANNER_JOINT;
-						mCommand = COMMAND_Wait4Go;
-						cout<<"switched to command wait4go"<<endl;
-
-					}
-	if(cmd=="sud"){
-						Constant_joint=1;
-						nP = 1;
-						idxPoint=0;
-						pointSequence.Resize(nP, KUKA_DOF);
-						backSequence.Resize(nP, KUKA_DOF);
-
-						pointSequence.Set(*sud, nP, KUKA_DOF);
-						pointSequence.Mult((PI/180.0), pointSequence);
-
-						backSequence.Set(*sud, nP, KUKA_DOF);
-						backSequence.Mult((PI/180.0), backSequence);
-
-
-						//Start the control chain
-						mPlanner = PLANNER_JOINT;
-						mCommand = COMMAND_Wait4Go;
-						cout<<"switched to command wait4go"<<endl;
-
-					}
-
 
 	return STATUS_OK;
 }
@@ -1310,7 +1238,7 @@ void playToneStart(){
 
 extern "C"{
     // These two "C" functions manage the creation and destruction of the class
-    monkeytask_test_2* create(){return new monkeytask_test_2();}
-    void destroy(monkeytask_test_2* module){delete module;}
+    monkeytask_arb* create(){return new monkeytask_arb();}
+    void destroy(monkeytask_arb* module){delete module;}
 }
 

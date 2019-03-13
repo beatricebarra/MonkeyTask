@@ -106,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS monkeytask_test_1/include monkeytask_test_2/include 
+  INCLUDE_DIRS ThreeDReaching/include monkeytask_test_1/include monkeytask_test_2/include SlowMovementApplication/include monkeytaskSCI/include monkeytask_arb/include monkeytask_arb_visual/include monkeytask_arb_data/include
   LIBRARIES monkeytask SDL2 
   CATKIN_DEPENDS mathlib robotlib
 #  DEPENDS system_lib
@@ -120,6 +120,15 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(monkeytask_test_1/include) 
 include_directories(monkeytask_test_2/include)
+include_directories(SlowMovementApplication/include)
+include_directories(monkeytask_arb/include)
+include_directories(monkeytask_arb_data/include)
+include_directories(monkeytaskSCI/include)
+include_directories(monkeytask_arb_visual/include)
+include_directories(ThreeDReaching/include)
+
+## Here include directories. BB 
+
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
@@ -129,11 +138,34 @@ include_directories(
 #   src/${PROJECT_NAME}/monkeytask.cpp
 # )
 
-FILE(GLOB theSourceFiles monkeytask_test_1/src/*.cpp)
-add_library(monkeytask_test_1 ${theSourceFiles})
+
+FILE(GLOB theSourceFiles1 monkeytask_test_1/src/*.cpp)
+add_library(monkeytask_test_1 ${theSourceFiles1})
 
 FILE(GLOB theSourceFiles2 monkeytask_test_2/src/*.cpp)
 add_library(monkeytask_test_2 ${theSourceFiles2})
+
+FILE(GLOB theSourceFiles3 SlowMovementApplication/src/*.cpp)
+add_library(SlowMovementApplication ${theSourceFiles3})
+
+FILE(GLOB theSourceFiles4 monkeytask_arb/src/*.cpp)
+add_library(monkeytask_arb ${theSourceFiles4})
+
+FILE(GLOB theSourceFiles5 monkeytaskSCI/src/*.cpp)
+add_library(monkeytaskSCI ${theSourceFiles5})
+
+FILE(GLOB theSourceFiles6 monkeytask_arb_visual/src/*.cpp)
+add_library(monkeytask_arb_visual ${theSourceFiles6})
+
+FILE(GLOB theSourceFiles7 monkeytask_arb_data/src/*.cpp)
+add_library(monkeytask_arb_data ${theSourceFiles7})
+
+FILE(GLOB theSourceFiles8 ThreeDReaching/src/*.cpp)
+add_library(ThreeDReaching ${theSourceFiles8})
+
+
+## Here add library. BB 
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -167,6 +199,33 @@ add_library(monkeytask_test_2 ${theSourceFiles2})
  target_link_libraries(monkeytask_test_2
    ${catkin_LIBRARIES} SDL2
  )
+
+target_link_libraries(SlowMovementApplication
+   ${catkin_LIBRARIES} SDL2
+)
+   
+target_link_libraries(monkeytask_arb
+   ${catkin_LIBRARIES} SDL2
+)
+
+target_link_libraries(monkeytaskSCI
+   ${catkin_LIBRARIES} SDL2
+)
+
+target_link_libraries(monkeytask_arb_visual
+   ${catkin_LIBRARIES} SDL2
+)
+
+target_link_libraries(monkeytask_arb_data
+   ${catkin_LIBRARIES} SDL2
+)
+
+target_link_libraries(ThreeDReaching
+   ${catkin_LIBRARIES} SDL2
+)
+
+   
+ ## Here sound library link. BB   
 
 #############
 ## Install ##
@@ -224,7 +283,7 @@ add_library(monkeytask_test_2 ${theSourceFiles2})
 # modules can be world or robot modules. Note that you need to specify your targets using 
 # standard cmake/catkin procedures above. This is step is only for linking the build modules.
 #set(rtk_modules monkeytask_test_1 )
- set(rtk_modules monkeytask_test_1 monkeytask_test_2)
+ set(rtk_modules ThreeDReaching monkeytask_test_1 monkeytask_test_2 SlowMovementApplication monkeytask_arb monkeytaskSCI monkeytask_arb_visual monkeytask_arb_data) ## Here add application name. BB 
 execute_process(COMMAND rospack find rtk_pkg_tools OUTPUT_VARIABLE rtk_pkg_tools_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 include(${rtk_pkg_tools_DIR}/rtk_create_symlinks.cmake)
 

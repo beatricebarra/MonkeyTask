@@ -1,8 +1,8 @@
 /*
- * Copyright (C) 2018 Swiss Primate Competence Center for Research, University of Fribourg, Switzerland
- * Author: Beatrice Barra
- * email:   beatrice.barra@unifr.ch
- * phone: + 41 26 300 87 69
+ * Copyright (C) 2010 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
+ * Author: Eric Sauser
+ * email:   eric.sauser@a3.epf.ch
+ * website: lasa.epfl.ch
  *
  * Permission is granted to copy, distribute, and/or modify this program
  * under the terms of the GNU General Public License, version 2 or any
@@ -14,10 +14,10 @@
  * Public License for more details
  */
 
+#ifndef SlowMovementApplication_H_
+#define SlowMovementApplication_H_
 
-#ifndef monkeytask_test_2_H_
-#define monkeytask_test_2_H_
-
+// Including libraries
 #include "RobotLib/RobotInterface.h"
 #include "MathLib/MathLib.h"
 #include "MathLib/IKGroupSolver.h"
@@ -51,7 +51,7 @@
 #include <SDL2/SDL_audio.h>
 #include <time.h>
 
-// Defines
+// Define constants
 #define KUKA_DOF 7
 #define FINGER_DOF 0
 #define IK_CONSTRAINTS 9
@@ -62,30 +62,9 @@ enum ENUM_COMMAND{COMMAND_2Position, COMMAND_spring, COMMAND_Back, COMMAND_Home,
 enum ENUM_PLANNER{PLANNER_CARTESIAN, PLANNER_JOINT, NONE_planner};
 enum ENUM_AXIS{AXIS_X=0, AXIS_Y, AXIS_Z};
 
-
-
-//Global variables
-/*double P1[] = {6.3, 12.38, 4.34, -69.36, 104.19, -11.11, -97.61};
-double P2[] = {26.38, 13.28, 4.34, -74.36, 115.62, -27.38, -112.72};
-double P3[] = {30.68, 13.28, 4.35, -79.08, 75.88, -29.50, -68.70};
-double P4[] = {25.96, 32.57, 4.35, -104.19, 32.80, -43.93, -22.47};
-double P5[] = {-1.8, 49.67, 3.09, -91.85, -1.37, -60.46, -25.77};
-double P6[] = {6.56, 28.91, -25.29, -112.69, 148.33, 48.44, -146.40};
-double P7[] = {-54.95, 25.93, 45.84, -91.25, 108.02, 14.81, -127.92};
-double P8[] = {-54.66, 7.94, 45.85, -82.96, 46.75, 19.07, -51.08};*/
-
-
-std::ostringstream ss;
-
-double P0[] = {-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40};
-double chair[2][KUKA_DOF]  = {{-0.86, 12.10, -17.67, -86.07, -0.51, -18.43, 1.64},
-{38.57, 18.18, -19.44, -79.70, -0.51, -18.43, 1.64}};
-double sud[1][KUKA_DOF]  = {-1.29, 9.32, -1.92, -107.97, -1.03, -25.78, 1.25};
-
-double pYdir[] = {0.0, 1.0, 0.0};
-double pZdir[] = {-1.0, 0.0, 0.0};
-
-double tenxp0[10][KUKA_DOF] = {
+// Point Sequences
+// Central point repeated
+/*double tenxp0[10][KUKA_DOF] = {
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
@@ -96,8 +75,24 @@ double tenxp0[10][KUKA_DOF] = {
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49}
+};*/
+
+// here position modified by Marion for accounting for high error threshold
+
+double tenxp0[10][KUKA_DOF] = {
+		{-1.25, 6.35, -1.92, -90, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -90 -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -90, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -90, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -90, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -90, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -90, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -90, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -90, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -90, -1.33, -18.42, +1.49}
 };
 
+// Return point repeated
 double allBack[10][KUKA_DOF] = {
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75},
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75},
@@ -111,9 +106,9 @@ double allBack[10][KUKA_DOF] = {
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75}
 };
 
-
 //Sequence 1 is : O, N, S, E, W, NE, SW, NW, SE, O
 //CARDINAL POINTS LOOKING AT THE ROBOT
+
 double P1[] = {-0.74, 4.66, -1.89, -91.96, 0.09, -3.66, 1.07};//N
 double P2[] = {-4.17, 5.23, -1.89, -93.58, -30.37, -6.75, 31.19};//NW
 double P3[] = {-5.93, 6.15, -1.89, -96.40, -28.49, -10.88, 29.00};//W
@@ -123,7 +118,7 @@ double P6[] = {2.77, 6.76, -1.89, -100.27, 14.23, -14.44, -12.40};//SE
 double P7[] = {4.42, 5.84, -1.89, -97.48, 26.79, 11.51, -24.87};//E
 double P8[] = {3.19, 4.99, -1.89, -94.25, 32.30, -7.38, -30.71};//NE
 
-// Looing from the robot back
+// Looking from the robot back: !!! opposite of the points up !!!
 double O[] = {-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49};
 double N[] = {-0.72, 4.07, -1.92, -97.61, 0.59, -10.15, -0.42};
 double S[] = {-1.29, 9.32, -1.92, -107.97, -1.03, -25.78, 1.25};
@@ -148,19 +143,11 @@ double Sequence1[10][KUKA_DOF] = {
 		{4.86, 8.87, -1.99, -109.44, 13.08, -26.21, -11.50},//SW
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//0
 };
-
 double FourPointSequence[6][KUKA_DOF] = {
 		{-0.72, 4.07, -1.92, -97.61, 0.59, -10.15, -0.42},//N
 		{6.71, 6.44, -1.92, -103.35, 22.93, -19.66, -21.27},//E
 		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11},//W
 		{-1.29, 9.32, -1.92, -107.97, -1.03, -25.78, 1.25},//S
-};
-
-double FourPointUpSequence[6][KUKA_DOF] = {
-		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
-		{-0.72, 4.07, -1.92, -97.61, 0.59, -10.15, -0.42},//N
-		{6.71, 6.44, -1.92, -103.35, 22.93, -19.66, -21.27},//E
-		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11},//W
 };
 
 double FivePointSequence[6][KUKA_DOF] = {
@@ -170,6 +157,7 @@ double FivePointSequence[6][KUKA_DOF] = {
 		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11},//W
 		{-1.29, 9.32, -1.92, -107.97, -1.03, -25.78, 1.25},//S
 };
+
 double SixPointSequence[6][KUKA_DOF] = {
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
 		{-0.72, 4.07, -1.92, -97.61, 0.59, -10.15, -0.42},//N
@@ -184,21 +172,11 @@ double ThreePointSequence[3][KUKA_DOF] = {
 		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11},//W
 };
 
-/*double FixedPoint[1][KUKA_DOF] = {
-		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
-};*/
-double FixedPoint[1][KUKA_DOF] = {
-		{14.02, 25.34, -16.44, -74.54, 12.98, -10.06, -4.54},//O
-};
-double FixedPointBack[1][KUKA_DOF] = {
-		{-2.82, -10.03, -1.2, -101.73, -7.87, -13.43, +8.16},//O
-};
-
-class monkeytask_test_2 : public RobotInterface
+class SlowMovementApplication : public RobotInterface
 {
 public:
-            monkeytask_test_2();
-    virtual ~monkeytask_test_2();
+            SlowMovementApplication();
+    virtual ~SlowMovementApplication();
   
     virtual Status              RobotInit();
     virtual Status              RobotFree();
@@ -211,16 +189,18 @@ public:
 
     virtual int                 RespondToConsoleCommand(const string cmd, const vector<string> &args);
 
+
 private:
 
 	void 						Send_Postion_To_Robot(Vector Position);
-
+	void 						chatterCallback_position(const sensor_msgs::JointState & msg);
 	ros::Publisher	 				pub_command_robot_real;
 	ros::Subscriber 				sub_position_robot;
-
-
-	void 						chatterCallback_position(const sensor_msgs::JointState & msg);
 	sKinematics                 *mSKinematicChain;
+
+	////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////  INPUT / OUTPUT  ///////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
 
 	// For USB communication
 	int 						DACfile;
@@ -228,12 +208,9 @@ private:
 	int 						arduinoFD;
 	ssize_t 					size;
 	struct termios 				options;
-
-
 	// For file writing
 	ofstream 					myfile;
 	string 						force_fileName;
-
 	// For DAC writing
 	double 						forceValue;
 	double						maxDACScale;
@@ -247,17 +224,24 @@ private:
 	int 						idxPoint;
 	int 						badTrial;
 
+	////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////  SIMULATOR /SOLVER /////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
+
 	RevoluteJointSensorGroup    mSensorsGroup;
 	RevoluteJointActuatorGroup  mActuatorsGroup;
 	KinematicChain              mKinematicChain;
-
 	IKGroupSolver               mIKSolver;
-
 	int                         mEndEffectorId;
+
+	////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////// ROBOT CONTROL ////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
 
 	// My set of variables
 	Matrix 						pointSequence;
 	Matrix 						backSequence;
+	Matrix 						homeSequence;
 
 	// Target vectors
 	Vector						BackPosition;
@@ -308,15 +292,23 @@ private:
 	Vector						cJointTORs;
 	Vector						JointEffort_handle;
 	Vector						eeForce;
-	Vector						eeForceCorrected;
-	Vector						eeForceCORRECT;
 	double 						eeForceMod;
-	int 						eeForceModInt;
+	int		 					eeForceModInt;
 
 	int							maxeeForceInt;
 	int							mineeForceInt;
 	double						maxeeForceDouble;
 	double						mineeForceDouble;
+
+	int 						maxeeDist2TargInt;
+	int							mineeDist2TargInt;
+	double						maxeeDist2TargDouble;
+	double						mineeDist2TargDouble;
+
+	double						eeDist2TargMod;
+	int 						eeDist2TargInt;
+	int							eeDist2TargIntShifted;
+	int							eeDistForceCombined;
 
 	char 						testvariable[2];
 	char 						testread;
@@ -367,15 +359,22 @@ private:
 	Vector3 					lTargetDirX;
 	Vector3						lTargetDirY;
 	Vector3 					lTargetDirZ;
-	Matrix 						JT;
-	Matrix 						temp_JJT;
-	Matrix						temp_JJTI;
 
 	double secs;
-	struct timeval t0, currentTime;
 	double Constant_joint;
+
+
+	// Velocity-precision
+	double maxSat;
+	double minSat;
+	double minROM;
+	double maxROM;
+
+	// Parameters input from the user
 	float pullThreshold;
 	float timeout;
+	float jointPosAccuracy;
+	float cartPosAccuracy;
 };
 
 

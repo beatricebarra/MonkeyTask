@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "monkeytask_test_2.h"
+#include "SlowMovementApplication.h"
 
 //Global variables
 bool closed_loop=true;
@@ -32,13 +32,13 @@ void playToneStart();
 
 using namespace std;
 
-monkeytask_test_2::monkeytask_test_2()
+SlowMovementApplication::SlowMovementApplication()
 :RobotInterface(){
 }
-monkeytask_test_2::~monkeytask_test_2(){
+SlowMovementApplication::~SlowMovementApplication(){
 }
 
-void monkeytask_test_2::chatterCallback_position(const sensor_msgs::JointState & msg)
+void SlowMovementApplication::chatterCallback_position(const sensor_msgs::JointState & msg)
 {
 	if (True_robot)
 	{
@@ -63,8 +63,7 @@ void monkeytask_test_2::chatterCallback_position(const sensor_msgs::JointState &
 
 	}
 }
-
-void monkeytask_test_2::Send_Postion_To_Robot(Vector Position)
+void SlowMovementApplication::Send_Postion_To_Robot(Vector Position)
 {
 	if (True_robot)
 	{
@@ -80,10 +79,9 @@ void monkeytask_test_2::Send_Postion_To_Robot(Vector Position)
 	}
 }
 
-RobotInterface::Status monkeytask_test_2::RobotInit(){
+RobotInterface::Status SlowMovementApplication::RobotInit(){
 
 	// Resizing the vectors for my number of joints
-
 	BackPosition.Resize(KUKA_DOF);
 
 	cJointTargetPos.Resize(KUKA_DOF);
@@ -114,18 +112,11 @@ RobotInterface::Status monkeytask_test_2::RobotInit(){
 	cCartTargetAcc.Resize(9); // Current cartesian target acceleration
 	cCartVel.Resize(9); 	// Current cartesian velocity
 
-//	Stiffness.Resize(3);
-//	Damping.Resize(3);
-
 	copyVector.Resize(3);
 	J_distance2P0.Resize(KUKA_DOF);
 	J_distance2Back.Resize(KUKA_DOF);
 	jP0.Resize(KUKA_DOF);
 	jBack.Resize(KUKA_DOF);
-	/*mJointPos.Resize(KUKA_DOF);
-	mJointDesPos.Resize(KUKA_DOF);
-	mJointDesVel.Resize(KUKA_DOF);
-	mJointTargetPos.Resize(KUKA_DOF);*/
 
 	lJointWeight.Resize(KUKA_DOF);
 	lPos.Resize(3);
@@ -243,9 +234,6 @@ RobotInterface::Status monkeytask_test_2::RobotInit(){
 	Vector lMaxVel(KUKA_DOF);
 	mSKinematicChain->getMaxVel(lMaxVel.Array());
 	mJointVelocityLimitsDT = lMaxVel*_dt;
-
-	//mJobJoints.Resize(KUKA_DOF);
-	//mJobJoints.Set(cJob, KUKA_DOF);
 	mJointWeights.Resize(KUKA_DOF);
 
 
@@ -283,12 +271,9 @@ RobotInterface::Status monkeytask_test_2::RobotInit(){
 	AddConsoleCommand("tenxp0");
 	AddConsoleCommand("TenPointSequence");
 	AddConsoleCommand("SixPointSequence");
-	AddConsoleCommand("ThreePointSequence");
 	AddConsoleCommand("FourPointSequence");
-	AddConsoleCommand("FourPointUpSequence");
 	AddConsoleCommand("FivePointSequence");
-	AddConsoleCommand("chair");
-	AddConsoleCommand("FixedPoint");
+	AddConsoleCommand("ThreePointSequence");
 	AddConsoleCommand("p0");
 	AddConsoleCommand("p1");
 	AddConsoleCommand("p2");
@@ -298,7 +283,6 @@ RobotInterface::Status monkeytask_test_2::RobotInit(){
 	AddConsoleCommand("p6");
 	AddConsoleCommand("p7");
 	AddConsoleCommand("p8");
-	AddConsoleCommand("sud");
 
 	mPlanner =NONE_planner;
 	mCommand = NONE_comand;
@@ -323,22 +307,25 @@ RobotInterface::Status monkeytask_test_2::RobotInit(){
 	home.Resize(KUKA_DOF);
 	Constant_joint=1;
 
-
-	// Force sensors calibration
-
-
 	// Valocity an stiffness
-
+	maxSat = 50;
+	minSat = 10;
+	minROM = 0.1;
+	maxROM = 0.7;
 	timeout = 10000.0;
 	pullThreshold = 0.08;
-
-
-
+	// Force sensors calibration
 	maxeeForceInt = 255;
 	mineeForceInt = 14;
-	maxeeForceDouble = 12;
+	maxeeDist2TargInt = 255;
+	mineeDist2TargInt = 14;
+	maxeeForceDouble = 30;
 	mineeForceDouble = 0;
+	maxeeDist2TargDouble = 0.1;
+	mineeDist2TargDouble = 0.0;
 
+	jointPosAccuracy = 0.2;//0.03;
+	cartPosAccuracy = 0.2;
 	// PointSequence Variables initialization
 	idxPoint = 0;
 	badTrial = 0;
@@ -348,23 +335,15 @@ RobotInterface::Status monkeytask_test_2::RobotInit(){
 	if (True_robot)
 	{
 		pub_command_robot_real =  n->advertise<kuka_fri_bridge::JointStateImpedance>("/real_r_arm_controller/joint_imp_cmd", 3);
-		sub_position_robot = n->subscribe("/real_r_arm_pos_controller/joint_states", 3, & monkeytask_test_2::chatterCallback_position,this);
+		sub_position_robot = n->subscribe("/real_r_arm_pos_controller/joint_states", 3, & SlowMovementApplication::chatterCallback_position,this);
 	}
 
-
     return STATUS_OK;
 }
-RobotInterface::Status monkeytask_test_2::RobotFree(){
+RobotInterface::Status SlowMovementApplication::RobotFree(){
     return STATUS_OK;
 }
-RobotInterface::Status monkeytask_test_2::RobotStart(){
-
-
-	//system("modprobe usbserial");
-	//system("stty -F /dev/ttyUSB5 ospeed 230400 -parenb tostop -ixon");
-
-	// Setting the position of all joints to 0
-	//mJointPosAll.Zero();
+RobotInterface::Status SlowMovementApplication::RobotStart(){
 	cJointPos.Zero();
 	if (True_robot)
 	{
@@ -379,21 +358,12 @@ RobotInterface::Status monkeytask_test_2::RobotStart(){
 		cJointPos = mSensorsGroup.GetJointAngles();
 	}
 
-	/*For real robot experiment!*/
-	/*	while (mJointPosAll.Norm()==0)
-	{*/
-	//mSensorsGroup.ReadSensors();
-	//mJointPosAll = mSensorsGroup.GetJointAngles();
-	//cJointPos = mSensorsGroup.GetJointAngles();
-	//	}
 	//Writing the joint position in the kinematic chain
 	//mSKinematicChain->setJoints(mJointPosAll.Array());
 	mSKinematicChain->setJoints(cJointPos.Array());
 	// Output of the joint values in the simulator console
-	//mJointPosAll.Print("mJointPosAll");
 	cJointPos.Print("cJointPos");
 	// Target position = current position
-	//mJointTargetPos=mJointPosAll;
 	cJointTargetPos = cJointPos;
 	// Null command and planner are set
 	mCommand=NONE_comand;
@@ -406,7 +376,7 @@ RobotInterface::Status monkeytask_test_2::RobotStart(){
 	}
 
 	// Opening communication with arduino
-	arduinoFD = open("/dev/ttyACM0", O_RDWR| O_NOCTTY | O_NONBLOCK);//| O_NOCTTY | O_NDELAY, O_RDWR| O_NOCTTY , O_RDWR | O_NONBLOCK
+	arduinoFD = open("/dev/ttyACM0", O_RDWR| O_NOCTTY  | O_NONBLOCK);//| O_NOCTTY | O_NDELAY, O_RDWR| O_NOCTTY , O_RDWR | O_NONBLOCK
 	struct termios settings, oldsettings;
 	if (arduinoFD < 0)
 	{
@@ -439,41 +409,6 @@ RobotInterface::Status monkeytask_test_2::RobotStart(){
 	cout<<arduinoFD<<endl;
 
 	// Opening communication with DAC
-
-//	DACFD = open("/dev/ttyUSB5", O_RDWR| O_NOCTTY );//| O_NOCTTY | O_NDELAY, O_RDWR| O_NOCTTY , O_RDWR | O_NONBLOCK
-//	//struct termios settings, oldsettings;
-//	if (DACFD < 0)
-//	{
-//		perror("/dev/ttyUSB5-->open()");
-//		exit(EXIT_FAILURE);
-//
-//	}
-//	tcgetattr(DACFD, &oldsettings);
-//	memset(&settings, 0, sizeof(settings));
-//
-//	cfsetispeed(&settings, B230400);
-//	cfsetospeed(&settings, B230400);
-//	settings.c_cflag     &=  ~PARENB;            // Make 8n1
-//	settings.c_cflag     &=  ~CSTOPB;
-//	settings.c_cflag     &=  ~CSIZE;
-//	settings.c_cflag     |=  CS8;
-//	settings.c_cflag     &=  ~CRTSCTS;           // no flow control
-//	settings.c_cc[VMIN]   =  1;                  // read doesn't block
-//	settings.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
-//	settings.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
-//	/* Make raw */
-//	cfmakeraw(&settings);
-//	/* Flush Port, then applies attributes */
-//	tcflush(DACFD, TCIFLUSH);
-//	tcsetattr(DACFD,TCSANOW,&settings);
-//	// Communicating success or failure
-//	int _errno_DAC = errno;
-//	printf("%s\n", strerror(_errno_DAC));
-//	cout<<"DAC has file descriptor number";
-//	cout<<"DACFD"<<endl;
-
-
-
 	DACfile = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY);
 	if (DACfile<0) printf("Error: comunication with vicon not open\n");
 
@@ -503,7 +438,8 @@ RobotInterface::Status monkeytask_test_2::RobotStart(){
 	scanf("%s", monkeyName);
 	printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
 
-
+	// Put here the a required input from the user to set the space threshold
+	// !!!!!!!!!!!!!!!
 	char userAnswer;
 	printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
 	printf("Input the desired pull threshold in cm\n");
@@ -526,8 +462,7 @@ RobotInterface::Status monkeytask_test_2::RobotStart(){
 	printf("BETTER THAN YESTERDAY, BUT WORSE THAN TOMORROW!\n");
 	printf("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
 
-	cout<<"do i pass from here?"<<endl;
-	// FILE TXT--> name is date and time
+	// FILE TXT for force and position--> name is date and time
 	time_t t = time(0);
 	struct tm *now = localtime(&t);
 	cout << (now->tm_year + 1900) << '-' << (now->tm_mon + 1) << '-' << (now->tm_mday)<<endl;
@@ -535,36 +470,24 @@ RobotInterface::Status monkeytask_test_2::RobotStart(){
 	strftime(currentDateTime, sizeof(currentDateTime), "%Y_%m_%d_%X", now);
 	char newName[50];
 	sprintf (newName, "%s_%d%.2d%.2d_%d-%.2d-%.2d.txt", monkeyName, now->tm_year + 1900, now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min, now->tm_sec);
-    myfile.open (newName);
-    cout<<myfile.is_open()<<endl;
-    // Writing labels
-    myfile<<"Fx"<<"," <<"Fy"<<","<<"Fz"<<","<<"Trigger"<<","<<"Time[s]"<<","<<"Time[us]"<<","<<"PositionID"<<","<<"px"<<","<<"py"<<","<<"pz"<<endl;
-
-    gettimeofday(&t0, NULL);
+	myfile.open (newName);
+	cout<<myfile.is_open()<<endl;
+	// Writing labels
+	myfile<<"Fx"<<"," <<"Fy"<<","<<"Fz"<<","<<"Trigger"<<","<<"Time"<<","<<"PositionID"<<","<<"px"<<","<<"py"<<","<<"pz"<<endl;
 
 	cout<<"End of Robot Start"<<endl;
-    return STATUS_OK;
+	return STATUS_OK;
 }    
-RobotInterface::Status monkeytask_test_2::RobotStop(){
+RobotInterface::Status SlowMovementApplication::RobotStop(){
     return STATUS_OK;
 }
-RobotInterface::Status monkeytask_test_2::RobotUpdate(){
+RobotInterface::Status SlowMovementApplication::RobotUpdate(){
 	ros::spinOnce();
 
 	//Local variables
 	float distance2target;
 	float distance2target_x;
-	long seconds, useconds;
-	timeval curTime;
-	int milli;
-	struct tm *now;
-	char thisInstantseconds[50];
-	char thisInstant[70];
-	char forcewrite[8];
-
-
 	// Setting the joints to values currently stored in mJointPosAll
-	//mSKinematicChain->setJoints(mJointPosAll.Array());
 	mSKinematicChain->setJoints(cJointPos.Array());
 	//Saving target point position and relative axis direction in the correspondent attribute in the KinematicChain object
 	mSKinematicChain->getEndPos(cCartPos.Array());
@@ -572,26 +495,19 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 	mSKinematicChain->getEndDirAxis(AXIS_Y, cCartDirY.Array());
 	mSKinematicChain->getEndDirAxis(AXIS_Z, cCartDirZ.Array());
 
-
-	//This is executed every time: Depending on the command I set:
-	// - The planner: joint or cartesian
-	// - The target position: home, back, position
-
+	//Setting different planners for different commands
 	switch(mCommand){
 	case COMMAND_2Position :
 		mPlanner = PLANNER_JOINT;
 		break;
 	case COMMAND_spring :
-		// In the case of the impedance phase, after an elapsed time a byte equal to 1 is sent to the Arduino to
-		// signal the beginning of the impedance control phase. The current point is read and kept as a target,
-		// and stiffness and damping parameters are set. Command is then set to NONE, so that all of this is
-		// done just once at switching between phases.
 		if (ros::Time::now().toSec()-secs>1 )
 		{
 			// Writing on arduino
 			char mywrite[1];
 			mywrite[0]= 1;
 			size = write(arduinoFD, &mywrite, sizeof(mywrite));
+
 			// Writing joints
 			mSKinematicChain->setJoints(cJointPos.Array());
 			// Reading end-effector pose and orientation
@@ -605,29 +521,28 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 			gain_ori=gain_ori1;
 			mPlanner = PLANNER_CARTESIAN;//Add termination condition in planner
 			mCommand = NONE_comand;
+
 			// Play a tone at 440 Hz
 			playToneGo();
+
+
 		}
 		break;
-
 	case COMMAND_Back:
 		fJointTargetPos = backSequence.GetRow(idxPoint-1, fJointTargetPos);
 		if(idxPoint == 0){
+			cout<<"I set the index at "<< nP<<endl;
 			fJointTargetPos = backSequence.GetRow(nP-1, fJointTargetPos);
 		}
+		//cout<<"back to position: "<<idxPoint<<"  "<<fJointTargetPos<<endl;
 		mPlanner = PLANNER_JOINT;
 		break;
 
 	case COMMAND_Home:
-		/*mPlanner = PLANNER_JOINT;
-		fJointTargetPos.Zero();*/
-		fJointTargetPos = backSequence.GetRow(idxPoint-1, fJointTargetPos);
-				if(idxPoint == 0){
-					fJointTargetPos = backSequence.GetRow(nP-1, fJointTargetPos);
-				}
-				mPlanner = PLANNER_JOINT;
+		mPlanner = PLANNER_JOINT;
+		fJointTargetPos.Zero(); //31.08.2018 change on the fly for not goin home--> change back or make another home pos
+		//fJointTargetPos = backSequence.GetRow(idxPoint-1, fJointTargetPos);
 		break;
-
 	case COMMAND_Wait4Go:
 			mPlanner = PLANNER_JOINT;
 			mSKinematicChain->setJoints(fJointTargetPos.Array());
@@ -635,21 +550,12 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 	}
 
 
-	// Added on 13.09.2018
-
 	time_t t = time(0);
-	gettimeofday(&curTime, NULL);
-	milli= curTime.tv_usec / 1000;
-	now = localtime(&t);
-	strftime(thisInstantseconds, sizeof(thisInstantseconds), "%X", now);
-	sprintf(thisInstant, "%s:%d", thisInstantseconds, milli);
+	struct tm *now = localtime(&t);
+	char thisInstant[50];
+	strftime(thisInstant, sizeof(thisInstant), "%X", now);
+	char forcewrite[8];
 
-
-
-	// Alternative approach
-	gettimeofday(&currentTime, NULL);
-	seconds  = currentTime.tv_sec  - t0.tv_sec;
-	useconds = currentTime.tv_usec - t0.tv_usec;
 
 
 	// Definition and implementation of type of movement
@@ -680,23 +586,28 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 
 		// Force modulus
 		eeForce = mJacobian3*cJointTORs;
-		// Correction of the force
-		JT = mJacobian3.Transpose();
-		temp_JJT = mJacobian3*JT;
-		temp_JJTI = temp_JJT.Inverse();
-		temp_JJT.IsInverseOk();
-		//if (temp_JJT.IsInverseOk()) cout<< "siamosalvi"<<endl;
-		//else if (!temp_JJT.IsInverseOk()) cout<< "siamofottuti"<<endl;
-
-		eeForceCorrected = temp_JJTI*eeForce;
-		eeForceCORRECT= JT*cJointTORs;
-
-
-		//eeForceMod = eeForce.Norm();
 		eeForceMod = eeForce.Norm();
 		eeForceModInt = floor(eeForceMod*(maxeeForceInt-mineeForceInt)/(maxeeForceDouble-mineeForceDouble) - mineeForceDouble + mineeForceInt);
-		write(arduinoFD, &eeForceModInt, 1);
-		//cout<<eeForceMod<<endl;
+		//write(arduinoFD, &eeForceModInt, 1);
+		printf("eeForceModInt send %d \n",eeForceModInt);
+
+		// added b Marion for writing the distace to target on the arduino
+		eeDist2TargMod = abs(distance2target_x);
+		eeDist2TargInt = floor(eeDist2TargMod*(maxeeDist2TargInt-mineeDist2TargInt)/(maxeeDist2TargDouble-mineeDist2TargDouble) - mineeDist2TargDouble + mineeDist2TargInt);
+		//write(arduinoFD, &eeDist2TargInt, 1);
+		printf("eeDist2TargInt send %d \n",eeDist2TargInt);
+
+		eeDist2TargIntShifted=eeDist2TargInt<<8;
+		printf("eeDist2TargIntShifted send %d \n",eeDist2TargIntShifted);
+
+
+		eeDistForceCombined=eeDist2TargIntShifted+eeForceModInt;
+		printf("eeDistForceCombined send %d \n",eeDistForceCombined);
+
+
+		write(arduinoFD, &eeDistForceCombined, 1);
+
+
 
 		//Updating the variables for current cartesian and joint position for next cycle
 		mSKinematicChain->getEndPos(cCartPos.Array());
@@ -723,11 +634,9 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 		// Desired acceleration (== force)
-
 		cCartTargetAcc.SetSubVector(0, (cCartPos-fCartTargetPos)*Stiffness + cCartTargetVel.GetSubVector(0,3)*Damping);
 		// Acceleration on the z axis is prevented
 		cCartTargetAcc(2)=(cCartPos(2)-fCartTargetPos(2))*Stiffness*25 + cCartTargetVel(2)*Damping*5;
-		//cCartTargetAcc.SetSubVector(0, 	cCartPos);
 		// Desired velocity
 		cCartTargetVel.SetSubVector(0,cCartTargetVel.GetSubVector(0,3) + cCartTargetAcc.GetSubVector(0,3)*_dt);
 		// Desired position
@@ -772,24 +681,20 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 		// Distance on x axis
 		distance2target_x = ffCartTargetPos[0]-cCartPos[0];
 
+
+
 		switch(mCommand){
 		case NONE_comand:
 
-			// Writing force to file: we are in impedance phase: it is a good idea
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," ;
-			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," ;
-			myfile << eeForceCorrected[0] <<","<< eeForceCorrected[1] << "," << eeForceCorrected[2] << "," ;
-			myfile << eeForceCORRECT[0] <<","<< eeForceCORRECT[1] << "," << eeForceCORRECT[2] << ",";
-			myfile << cJointTORs[0] <<","<< cJointTORs[1] << "," << cJointTORs[2]<< "," <<cJointTORs[3]<< ","<<cJointTORs[4]<< ","<<cJointTORs[5]<< ","<<cJointTORs[6]<< ",";
-			myfile << mJacobian3.GetRow(0)<<"," <<mJacobian3.GetRow(1)<<","<<mJacobian3.GetRow(2)<<",";
-			myfile << cJointPos[0] <<","<< cJointPos[1] << "," << cJointPos[2]<< "," <<cJointPos[3]<< ","<<cJointPos[4]<< ","<<cJointPos[5]<< ","<<cJointPos[6]<<",";
-			myfile<< 2 << "," ;
-			myfile<< seconds << "," << useconds << ","<< idxPoint << ",";
-			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
+			// Writing force to file
+			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," << thisInstant << "," << idxPoint << ",";
+			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
 
+
+			// Read button value
 			// Condition for going back home:
 			// - The robot has been pulled of 10 cm OR 00 seconds elapsed without any accomplishment from the monkey
-			if((distance2target_x)> pullThreshold){ // in the final application I need a major sign
+			if((distance2target_x)> pullThreshold ){
 
 				//Trig out
 				char mywrite[1];
@@ -802,10 +707,11 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 				cout<<"The next point index is "<<idxPoint<<endl;
 			}
 			else {
-
 				char readBytes[1];
 				char trashBytes[5];
 				size = read(arduinoFD, &readBytes, 1);
+
+
 				if(ros::Time::now().toSec()-secs>timeout || readBytes[0] == 'N'){
 					badTrial = badTrial + 1;
 					if (badTrial >=3) {
@@ -819,24 +725,14 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 				}
 			}
 
+
 			break;
 
 		case COMMAND_Back:
 
-			// Writing force to file: we are going to the back position, it is a good idea
+			// Writing force to file
 			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
 			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," ;
-			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," ;
-			myfile << eeForceCorrected[0] <<","<< eeForceCorrected[1] << "," << eeForceCorrected[2] << "," ;
-			myfile << eeForceCORRECT[0] <<","<< eeForceCORRECT[1] << "," << eeForceCORRECT[2] << ",";
-			myfile << cJointTORs[0] <<","<< cJointTORs[1] << "," << cJointTORs[2]<< "," <<cJointTORs[3]<< ","<<cJointTORs[4]<< ","<<cJointTORs[5]<< ","<<cJointTORs[6]<< ",";
-			myfile << mJacobian3.GetRow(0)<<"," <<mJacobian3.GetRow(1)<<","<<mJacobian3.GetRow(0)<<",";
-			myfile << cJointPos[0] <<","<< cJointPos[1] << "," << cJointPos[2]<< "," <<cJointPos[3]<< ","<<cJointPos[4]<< ","<<cJointPos[5]<< ","<<cJointPos[6]<<",";
-			myfile<< 0 << "," ;
-			myfile<< seconds << "," << useconds << ","<< idxPoint << ",";
-			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
-
 			// Going back to the original target point after the monkey pulled
 			if((distance2target_x)< 0.001 ){ // in the final application I need a major sign
 					mCommand = COMMAND_Home;
@@ -851,20 +747,18 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 		// If the Planner is held in the joint space joint values are directly updated
 
 		//My implementation
-		//cout<<"IN PLANNER JOINT"<<endl;
 		// Target position in joint space
 		home.Zero();
 
 		InitialDistance.Resize(KUKA_DOF);
 		InitialDistance= (fJointTargetPos-home);
-		//cout<<InitialDistance<<endl;
 		CurrentDistance.Resize(KUKA_DOF);
 		CurrentDistance = (fJointTargetPos-cJointPos);
 		double k_v;
-		double maxSat = 90;//100;//120;//100;
-		double minSat = 40;//70;
+		double maxSat = 50;
+		double minSat = 10;
 		double minROM = 0.1;
-		double maxROM = 0.9;
+		double maxROM = 0.7;
 
 		if (CurrentDistance.Norm()/InitialDistance.Norm()<minROM)
 			k_v = maxSat;
@@ -878,46 +772,29 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 		mSKinematicChain->getEndPos(cCartPos.Array());
 		// Force modulus
 		eeForce = mJacobian3*cJointTORs;
-		//eeForceMod = eeForce.Norm();
 		eeForceMod = eeForce.Norm();
 
 
 
-
-
+		//time_t thisInstant  = time(0);
 		switch (mCommand){
 		case NONE_comand:
 			// Writing force to file
 			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
 			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
-			// attempt to write
-			//forceValue= eeForceMod*maxDACScale/maxForceValue;
-			//size = write(DACFD, &forceValue, 8);
-
 		break;
 
 		case COMMAND_2Position:
 
 			// Sending trigger to file
-			// Writing force to file: I am going to position, it is a good idea
+			// Writing force to file
 			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 1 << ","<<thisInstant << "," << idxPoint << ",";
 			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
 
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," ;
-
-			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," ;
-			myfile << eeForceCorrected[0] <<","<< eeForceCorrected[1] << "," << eeForceCorrected[2] << "," ;
-			myfile << eeForceCORRECT[0] <<","<< eeForceCORRECT[1] << "," << eeForceCORRECT[2] << ",";
-			myfile << cJointTORs[0] <<","<< cJointTORs[1] << "," << cJointTORs[2]<< "," <<cJointTORs[3]<< ","<<cJointTORs[4]<< ","<<cJointTORs[5]<< ","<<cJointTORs[6]<< ",";
-			myfile << mJacobian3.GetRow(0)<<"," <<mJacobian3.GetRow(1)<<","<<mJacobian3.GetRow(0)<<",";
-			myfile << cJointPos[0] <<","<< cJointPos[1] << "," << cJointPos[2]<< "," <<cJointPos[3]<< ","<<cJointPos[4]<< ","<<cJointPos[5]<< ","<<cJointPos[6]<<",";
-			myfile<< 1 << "," ;
-			myfile<< seconds << "," << useconds << ","<< idxPoint << ",";
-			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
 			// Going to target point
 			J_distance2P0 = cJointTargetPos-fJointTargetPos;
 
-			if (J_distance2P0.Norm() < 0.016){//if (abs(J_distance2P0[0])*(180.0/PI) < 1 && abs(J_distance2P0[1])*(180.0/PI)<1 && abs(J_distance2P0[2])*(180.0/PI) < 1 && abs(J_distance2P0[3])*(180.0/PI)<1 && abs(J_distance2P0[4])*(180.0/PI) < 1 && abs(J_distance2P0[5])*(180.0/PI)<1 && abs(J_distance2P0[6])*(180.0/PI) < 1){//if (J_distance2P0.Norm() < 0.09)
+			if (J_distance2P0.Norm() < jointPosAccuracy){//if (abs(J_distance2P0[0])*(180.0/PI) < 1 && abs(J_distance2P0[1])*(180.0/PI)<1 && abs(J_distance2P0[2])*(180.0/PI) < 1 && abs(J_distance2P0[3])*(180.0/PI)<1 && abs(J_distance2P0[4])*(180.0/PI) < 1 && abs(J_distance2P0[5])*(180.0/PI)<1 && abs(J_distance2P0[6])*(180.0/PI) < 1){//if (J_distance2P0.Norm() < 0.09)
 
 				secs =ros::Time::now().toSec();
 				cJointTargetPos=cJointPos;
@@ -940,22 +817,11 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
 			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
 
-			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 2 << "," ;
-
-			myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," ;
-			myfile << eeForceCorrected[0] <<","<< eeForceCorrected[1] << "," << eeForceCorrected[2] << "," ;
-			myfile << eeForceCORRECT[0] <<","<< eeForceCORRECT[1] << "," << eeForceCORRECT[2] << ",";
-			myfile << cJointTORs[0] <<","<< cJointTORs[1] << "," << cJointTORs[2]<< "," <<cJointTORs[3]<< ","<<cJointTORs[4]<< ","<<cJointTORs[5]<< ","<<cJointTORs[6]<< ",";
-			myfile << mJacobian3.GetRow(0)<<"," <<mJacobian3.GetRow(1)<<","<<mJacobian3.GetRow(0)<<",";
-			myfile << cJointPos[0] <<","<< cJointPos[1] << "," << cJointPos[2]<< "," <<cJointPos[3]<< ","<<cJointPos[4]<< ","<<cJointPos[5]<< ","<<cJointPos[6]<<",";
-			myfile<< 0 << "," ;
-			myfile<< seconds << "," << useconds << ","<< idxPoint << ",";
-			myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
 			// Going back to the original target point after the monkey pulled
 			Constant_joint=1;
 			J_distance2Back = cJointPos-fJointTargetPos;
 
-			if (J_distance2Back.Norm() < 0.1 )
+			if (J_distance2Back.Norm() < jointPosAccuracy )
 			{
 				mCommand=COMMAND_Home;
 			}
@@ -963,10 +829,14 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 
 		case COMMAND_Home:
 
+			// Writing force to file
+			//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << "," ;
+			//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
+
 			// Going back to the original target point after the monkey pulled
 			Constant_joint=1;
 			J_distance2Home = cJointPos-fJointTargetPos;
-			if (J_distance2Home.Norm() < 0.1 )
+			if (J_distance2Home.Norm() < jointPosAccuracy )
 			{
 				if (idxPoint >= nP){
 					cout<<"putting idxPoint to 0"<<endl;
@@ -991,7 +861,14 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 			// Wait for button
 			while(readFlag){//change
 
+				// Writing force to file
+				//myfile << eeForce[0] <<","<< eeForce[1] << "," << eeForce[2] << "," << 0 << ","<<thisInstant << "," << idxPoint << ",";
+				//myfile<<cCartPos[0]<<"," <<cCartPos[1]<<","<<cCartPos[2]<<endl;
+
 				size = read(arduinoFD, &readBytes, buffersize);
+
+				char trashBytes[5];
+				size = read(arduinoFD, &trashBytes, 5);
 
 				if (readBytes[0]=='N'){//readBytes[0]
 					cout<<"Going to position"<<endl;
@@ -999,9 +876,10 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 					mCommand = COMMAND_2Position;
 					readFlag = 0;
 
+					// This part has been added by Elvira to send an output to the Arduino
+
 					char mywrite[1];
 					modidxPoint = idxPoint+4;
-					cout<<"Point"<<modidxPoint<<endl;
 					playToneStart();
 					size = write(arduinoFD, &modidxPoint, sizeof(mywrite));
 					}
@@ -1010,10 +888,9 @@ RobotInterface::Status monkeytask_test_2::RobotUpdate(){
 		}
 	}
 
-
     return STATUS_OK;
 }
-RobotInterface::Status monkeytask_test_2::RobotUpdateCore(){
+RobotInterface::Status SlowMovementApplication::RobotUpdateCore(){
 	ros::spinOnce();
 
 	if (True_robot==false)
@@ -1031,11 +908,11 @@ RobotInterface::Status monkeytask_test_2::RobotUpdateCore(){
 	mActuatorsGroup.SetJointAngles(cJointTargetPos);
 	mActuatorsGroup.WriteActuators();
 	mKinematicChain.Update();
-
     return STATUS_OK;
 }
-int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<string> &args){
 
+
+int SlowMovementApplication::RespondToConsoleCommand(const string cmd, const vector<string> &args){
 	cout<<"Write your command"<<endl;
 	if(cmd=="tenxp0"){
 		Constant_joint=1;
@@ -1043,12 +920,14 @@ int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<st
 		idxPoint=0;
 		pointSequence.Resize(nP, KUKA_DOF);
 		backSequence.Resize(nP, KUKA_DOF);
+		homeSequence.Resize(nP, KUKA_DOF);
 
 		pointSequence.Set(*tenxp0, nP, KUKA_DOF);
 		pointSequence.Mult((PI/180.0), pointSequence);
 
 		backSequence.Set(*allBack, nP, KUKA_DOF);
 		backSequence.Mult((PI/180.0), backSequence);
+		//backSequence.Set(*tenxp0, nP, KUKA_DOF);
 
 		//Start the control chain
 		mPlanner = PLANNER_JOINT;
@@ -1062,6 +941,7 @@ int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<st
 		idxPoint=0;
 		pointSequence.Resize(nP, KUKA_DOF);
 		backSequence.Resize(nP, KUKA_DOF);
+		homeSequence.Resize(nP,KUKA_DOF);
 
 		pointSequence.Set(*Sequence1, nP, KUKA_DOF);
 		pointSequence.Mult((PI/180.0), pointSequence);
@@ -1081,6 +961,7 @@ int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<st
 		idxPoint=0;
 		pointSequence.Resize(nP, KUKA_DOF);
 		backSequence.Resize(nP, KUKA_DOF);
+		homeSequence.Resize(nP,KUKA_DOF);
 
 		pointSequence.Set(*SixPointSequence, nP, KUKA_DOF);
 		pointSequence.Mult((PI/180.0), pointSequence);
@@ -1100,9 +981,11 @@ int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<st
 			idxPoint=0;
 			pointSequence.Resize(nP, KUKA_DOF);
 			backSequence.Resize(nP, KUKA_DOF);
+			homeSequence.Resize(nP,KUKA_DOF);
 
 			pointSequence.Set(*ThreePointSequence, nP, KUKA_DOF);
 			pointSequence.Mult((PI/180.0), pointSequence);
+
 
 			backSequence.Set(*ThreePointSequence, nP, KUKA_DOF);
 			backSequence.Mult((PI/180.0), backSequence);
@@ -1115,76 +998,17 @@ int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<st
 
 		}
 	if(cmd=="FourPointSequence"){
-				Constant_joint=1;
-				nP = 4;
-				idxPoint=0;
-				pointSequence.Resize(nP, KUKA_DOF);
-				backSequence.Resize(nP, KUKA_DOF);
-
-				pointSequence.Set(*FourPointSequence, nP, KUKA_DOF);
-				pointSequence.Mult((PI/180.0), pointSequence);
-
-				backSequence.Set(*FourPointSequence, nP, KUKA_DOF);
-				backSequence.Mult((PI/180.0), backSequence);
-
-
-				//Start the control chain
-				mPlanner = PLANNER_JOINT;
-				mCommand = COMMAND_Wait4Go;
-				cout<<"switched to command wait4go"<<endl;
-
-			}
-	if(cmd=="FourPointUpSequence"){
 					Constant_joint=1;
 					nP = 4;
 					idxPoint=0;
 					pointSequence.Resize(nP, KUKA_DOF);
 					backSequence.Resize(nP, KUKA_DOF);
+					homeSequence.Resize(nP,KUKA_DOF);
 
-					pointSequence.Set(*FourPointUpSequence, nP, KUKA_DOF);
+					pointSequence.Set(*FourPointSequence, nP, KUKA_DOF);
 					pointSequence.Mult((PI/180.0), pointSequence);
 
-					backSequence.Set(*FourPointUpSequence, nP, KUKA_DOF);
-					backSequence.Mult((PI/180.0), backSequence);
-
-
-					//Start the control chain
-					mPlanner = PLANNER_JOINT;
-					mCommand = COMMAND_Wait4Go;
-					cout<<"Switched to command wait4go"<<endl;
-
-				}
-	if(cmd=="FivePointSequence"){
-				Constant_joint=1;
-				nP = 5;
-				idxPoint=0;
-				pointSequence.Resize(nP, KUKA_DOF);
-				backSequence.Resize(nP, KUKA_DOF);
-
-				pointSequence.Set(*FivePointSequence, nP, KUKA_DOF);
-				pointSequence.Mult((PI/180.0), pointSequence);
-
-				backSequence.Set(*FivePointSequence, nP, KUKA_DOF);
-				backSequence.Mult((PI/180.0), backSequence);
-
-
-				//Start the control chain
-				mPlanner = PLANNER_JOINT;
-				mCommand = COMMAND_Wait4Go;
-				cout<<"switched to command wait4go"<<endl;
-
-			}
-	if(cmd=="chair"){
-					Constant_joint=1;
-					nP = 2;
-					idxPoint=0;
-					pointSequence.Resize(nP, KUKA_DOF);
-					backSequence.Resize(nP, KUKA_DOF);
-
-					pointSequence.Set(*chair, nP, KUKA_DOF);
-					pointSequence.Mult((PI/180.0), pointSequence);
-
-					backSequence.Set(*chair, nP, KUKA_DOF);
+					backSequence.Set(*FourPointSequence, nP, KUKA_DOF);
 					backSequence.Mult((PI/180.0), backSequence);
 
 
@@ -1194,49 +1018,31 @@ int monkeytask_test_2::RespondToConsoleCommand(const string cmd, const vector<st
 					cout<<"switched to command wait4go"<<endl;
 
 				}
-	if(cmd=="FixedPoint"){
-						Constant_joint=1;
-						nP = 1;
-						idxPoint=0;
-						pointSequence.Resize(nP, KUKA_DOF);
-						backSequence.Resize(nP, KUKA_DOF);
+		if(cmd=="FivePointSequence"){
+					Constant_joint=1;
+					nP = 5;
+					idxPoint=0;
+					pointSequence.Resize(nP, KUKA_DOF);
+					backSequence.Resize(nP, KUKA_DOF);
+					homeSequence.Resize(nP,KUKA_DOF);
 
-						pointSequence.Set(*FixedPoint, nP, KUKA_DOF);
-						pointSequence.Mult((PI/180.0), pointSequence);
+					pointSequence.Set(*FivePointSequence, nP, KUKA_DOF);
+					pointSequence.Mult((PI/180.0), pointSequence);
 
-						backSequence.Set(*FixedPointBack, nP, KUKA_DOF);
-						backSequence.Mult((PI/180.0), backSequence);
+					backSequence.Set(*FivePointSequence, nP, KUKA_DOF);
+					backSequence.Mult((PI/180.0), backSequence);
 
+					homeSequence.Set(*FivePointSequence, nP, KUKA_DOF);
+					homeSequence.Mult((PI/180.0), backSequence);
 
-						//Start the control chain
-						mPlanner = PLANNER_JOINT;
-						mCommand = COMMAND_Wait4Go;
-						cout<<"switched to command wait4go"<<endl;
+					//Start the control chain
+					mPlanner = PLANNER_JOINT;
+					mCommand = COMMAND_Wait4Go;
+					cout<<"switched to command wait4go"<<endl;
 
-					}
-	if(cmd=="sud"){
-						Constant_joint=1;
-						nP = 1;
-						idxPoint=0;
-						pointSequence.Resize(nP, KUKA_DOF);
-						backSequence.Resize(nP, KUKA_DOF);
+				}
 
-						pointSequence.Set(*sud, nP, KUKA_DOF);
-						pointSequence.Mult((PI/180.0), pointSequence);
-
-						backSequence.Set(*sud, nP, KUKA_DOF);
-						backSequence.Mult((PI/180.0), backSequence);
-
-
-						//Start the control chain
-						mPlanner = PLANNER_JOINT;
-						mCommand = COMMAND_Wait4Go;
-						cout<<"switched to command wait4go"<<endl;
-
-					}
-
-
-	return STATUS_OK;
+    return 0;
 }
 
 void audio_callback(void *user_data, Uint8 *raw_buffer, int bytes)
@@ -1310,7 +1116,7 @@ void playToneStart(){
 
 extern "C"{
     // These two "C" functions manage the creation and destruction of the class
-    monkeytask_test_2* create(){return new monkeytask_test_2();}
-    void destroy(monkeytask_test_2* module){delete module;}
+    SlowMovementApplication* create(){return new SlowMovementApplication();}
+    void destroy(SlowMovementApplication* module){delete module;}
 }
 

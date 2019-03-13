@@ -15,8 +15,8 @@
  */
 
 
-#ifndef monkeytask_test_2_H_
-#define monkeytask_test_2_H_
+#ifndef ThreeDReaching_H_
+#define ThreeDReaching_H_
 
 #include "RobotLib/RobotInterface.h"
 #include "MathLib/MathLib.h"
@@ -50,6 +50,13 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 #include <time.h>
+#include <curses.h>
+
+// for tcp/ip port
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
 
 // Defines
 #define KUKA_DOF 7
@@ -80,7 +87,6 @@ std::ostringstream ss;
 double P0[] = {-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40};
 double chair[2][KUKA_DOF]  = {{-0.86, 12.10, -17.67, -86.07, -0.51, -18.43, 1.64},
 {38.57, 18.18, -19.44, -79.70, -0.51, -18.43, 1.64}};
-double sud[1][KUKA_DOF]  = {-1.29, 9.32, -1.92, -107.97, -1.03, -25.78, 1.25};
 
 double pYdir[] = {0.0, 1.0, 0.0};
 double pZdir[] = {-1.0, 0.0, 0.0};
@@ -98,6 +104,32 @@ double tenxp0[10][KUKA_DOF] = {
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49}
 };
 
+double cylCenterPos[10][KUKA_DOF] = {
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -99.59, -1.33, -18.42, +1.49}
+};
+
+double allBack[10][KUKA_DOF] = {
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49}
+};
+/*
 double allBack[10][KUKA_DOF] = {
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75},
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75},
@@ -110,7 +142,7 @@ double allBack[10][KUKA_DOF] = {
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75},
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75}
 };
-
+*/
 
 //Sequence 1 is : O, N, S, E, W, NE, SW, NW, SE, O
 //CARDINAL POINTS LOOKING AT THE ROBOT
@@ -156,13 +188,6 @@ double FourPointSequence[6][KUKA_DOF] = {
 		{-1.29, 9.32, -1.92, -107.97, -1.03, -25.78, 1.25},//S
 };
 
-double FourPointUpSequence[6][KUKA_DOF] = {
-		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
-		{-0.72, 4.07, -1.92, -97.61, 0.59, -10.15, -0.42},//N
-		{6.71, 6.44, -1.92, -103.35, 22.93, -19.66, -21.27},//E
-		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11},//W
-};
-
 double FivePointSequence[6][KUKA_DOF] = {
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
 		{-0.72, 4.07, -1.92, -97.61, 0.59, -10.15, -0.42},//N
@@ -178,27 +203,45 @@ double SixPointSequence[6][KUKA_DOF] = {
 		{-7.57, 4.37, -1.99, -97.0, -33.01, -12.47, +32.40},//NE
 		{6.25, 3.73, -1.99, -98.49, 34.19, -12.64, -33.14},//NW
 };
-double ThreePointSequence[3][KUKA_DOF] = {
+/*double ThreePointSequence[3][KUKA_DOF] = {
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
 		{6.71, 6.44, -1.92, -103.35, 22.93, -19.66, -21.27},//E
 		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11},//W
-};
-
-/*double FixedPoint[1][KUKA_DOF] = {
-		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
 };*/
-double FixedPoint[1][KUKA_DOF] = {
-		{14.02, 25.34, -16.44, -74.54, 12.98, -10.06, -4.54},//O
-};
-double FixedPointBack[1][KUKA_DOF] = {
-		{-2.82, -10.03, -1.2, -101.73, -7.87, -13.43, +8.16},//O
+//16.01.2018
+double ThreePointSequence[3][KUKA_DOF] = {
+		{-3.7, 4.8, -1.56, -101.74, -4.46, -19.22, 27.10},//C  x = 512.02, y = -121.36, z= 613.46
+		{-10.77, 9.51, -7.85, -91.04, -56.7, -22.01, 61.6},//L x = 476.72, y = -244.09, z = 696.94
+		{8.94, 6.94, -4.05, -93.8, 14.66, -15.06, -7.92},//R   x = 476.61, y = -6.74, z = 685.56
 };
 
-class monkeytask_test_2 : public RobotInterface
+double Cube[13][KUKA_DOF] = {
+		{28.7, -7.7, 30.9, -105.56, 50.27, -31.09, -21.9},
+		{-71.83, -8.98, 30.38, -105.17, 91.57, 26.37, -21.00},
+		{24.0, 2.001, 10.2, -111.3, 62.9, -34.5, -2.7},
+		{-26.5, 19.00, 8.8, -110.32, -24.5, -32.1, 43.9 },
+		{-17.94, 7.09, 2.1, -104.33, -27.4, -24.1, 49.4},
+		{21.5, 10.7, 0.5, -100.3, 50.3, -31.15, -22.7},
+		{21.7, 28.8, -13.3, -73.88, 45.0, -18.8, -14.8},
+		{-15.83, 31.63, 10.00, -72.4, -11.85, -15.2, 30.7},
+		{-11.7, 45.9, 1.00, -84.6, -11.8, -32.6, 32.67},
+		{30.7, 45.05, -20.09, -80.34, 36.7, -28.5, 3.6},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
+		{6.71, 6.44, -1.92, -103.35, 22.93, -19.66, -21.27},//E
+		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11}, //x = 476.61, y = -6.74, z = 685.56
+};
+
+double ThreePointSequenceCart[3][3] = {
+		{561.27, -38.83, 656.98},//C  x = 512.02, y = -121.36, z= 613.46
+		{567.5, -112.35, 690.2},//L x = 476.72, y = -244.09, z = 696.94
+		{570.78, 47.95, 672.05},//R   x = 476.61, y = -6.74, z = 685.56
+};
+
+class ThreeDReaching : public RobotInterface
 {
 public:
-            monkeytask_test_2();
-    virtual ~monkeytask_test_2();
+            ThreeDReaching();
+    virtual ~ThreeDReaching();
   
     virtual Status              RobotInit();
     virtual Status              RobotFree();
@@ -257,6 +300,7 @@ private:
 
 	// My set of variables
 	Matrix 						pointSequence;
+	Matrix 						pointSequenceCart;
 	Matrix 						backSequence;
 
 	// Target vectors
@@ -308,8 +352,6 @@ private:
 	Vector						cJointTORs;
 	Vector						JointEffort_handle;
 	Vector						eeForce;
-	Vector						eeForceCorrected;
-	Vector						eeForceCORRECT;
 	double 						eeForceMod;
 	int 						eeForceModInt;
 
@@ -337,6 +379,7 @@ private:
 	Vector 						J_distance2P0;
 	Vector 						J_distance2Back;
 	Vector						J_distance2Home;
+	Vector 						C_distance2P0;
 	Vector 						jP0;
 	Vector 						jBack;
 	// end of my set of variables
@@ -367,15 +410,32 @@ private:
 	Vector3 					lTargetDirX;
 	Vector3						lTargetDirY;
 	Vector3 					lTargetDirZ;
-	Matrix 						JT;
-	Matrix 						temp_JJT;
-	Matrix						temp_JJTI;
 
 	double secs;
-	struct timeval t0, currentTime;
-	double Constant_joint;
-	float pullThreshold;
-	float timeout;
+
+	float 						pullThreshold;
+	float 						timeout;
+	float 						targetThreshold;
+	float 						targetThresholdCart;
+	bool 						isfirsttrial;
+	int 						Constant_joint;
+	int 						userCommand;
+	int 						failureThreshold;
+	struct timeval 				t0, currentTime;
+	long 						systemSeconds, systemUseconds;
+
+
+	// NI boards communication
+
+	float 						writeForcePos[14]; // 3d pos, 3d force, 1d rel_pos, 7d joint angles
+	int							sockfd;
+	struct 						sockaddr_in serv_addr;
+	struct 						sockaddr_in cli_addr;
+	struct 						sockaddr_in cli_adds;
+	socklen_t 					cli_len;
+	int							serverportno;  // port number here, of kuka laptop
+	int 						bytes2Write;
+	int 						bytes2Read;
 };
 
 

@@ -15,8 +15,8 @@
  */
 
 
-#ifndef monkeytask_test_2_H_
-#define monkeytask_test_2_H_
+#ifndef monkeytask_arb_visual_H_
+#define monkeytask_arb_visual_H_
 
 #include "RobotLib/RobotInterface.h"
 #include "MathLib/MathLib.h"
@@ -50,6 +50,11 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 #include <time.h>
+// for tcp/ip port
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
 
 // Defines
 #define KUKA_DOF 7
@@ -80,12 +85,11 @@ std::ostringstream ss;
 double P0[] = {-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40};
 double chair[2][KUKA_DOF]  = {{-0.86, 12.10, -17.67, -86.07, -0.51, -18.43, 1.64},
 {38.57, 18.18, -19.44, -79.70, -0.51, -18.43, 1.64}};
-double sud[1][KUKA_DOF]  = {-1.29, 9.32, -1.92, -107.97, -1.03, -25.78, 1.25};
 
 double pYdir[] = {0.0, 1.0, 0.0};
 double pZdir[] = {-1.0, 0.0, 0.0};
 
-double tenxp0[10][KUKA_DOF] = {
+double tenxp0[10][KUKA_DOF] = { // this gets set to point sequence
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
@@ -98,6 +102,19 @@ double tenxp0[10][KUKA_DOF] = {
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49}
 };
 
+double allBack[10][KUKA_DOF] = { // this gets set to backsequence
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},
+		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49}
+};
+/*
 double allBack[10][KUKA_DOF] = {
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75},
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75},
@@ -110,7 +127,7 @@ double allBack[10][KUKA_DOF] = {
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75},
 		{-1.26, -15.20, -2.21, -110.06, -1.36, -9.25, 1.75}
 };
-
+*/
 
 //Sequence 1 is : O, N, S, E, W, NE, SW, NW, SE, O
 //CARDINAL POINTS LOOKING AT THE ROBOT
@@ -156,13 +173,6 @@ double FourPointSequence[6][KUKA_DOF] = {
 		{-1.29, 9.32, -1.92, -107.97, -1.03, -25.78, 1.25},//S
 };
 
-double FourPointUpSequence[6][KUKA_DOF] = {
-		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
-		{-0.72, 4.07, -1.92, -97.61, 0.59, -10.15, -0.42},//N
-		{6.71, 6.44, -1.92, -103.35, 22.93, -19.66, -21.27},//E
-		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11},//W
-};
-
 double FivePointSequence[6][KUKA_DOF] = {
 		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
 		{-0.72, 4.07, -1.92, -97.61, 0.59, -10.15, -0.42},//N
@@ -184,21 +194,11 @@ double ThreePointSequence[3][KUKA_DOF] = {
 		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11},//W
 };
 
-/*double FixedPoint[1][KUKA_DOF] = {
-		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
-};*/
-double FixedPoint[1][KUKA_DOF] = {
-		{14.02, 25.34, -16.44, -74.54, 12.98, -10.06, -4.54},//O
-};
-double FixedPointBack[1][KUKA_DOF] = {
-		{-2.82, -10.03, -1.2, -101.73, -7.87, -13.43, +8.16},//O
-};
-
-class monkeytask_test_2 : public RobotInterface
+class monkeytask_arb_visual : public RobotInterface
 {
 public:
-            monkeytask_test_2();
-    virtual ~monkeytask_test_2();
+            monkeytask_arb_visual();
+    virtual ~monkeytask_arb_visual();
   
     virtual Status              RobotInit();
     virtual Status              RobotFree();
@@ -218,7 +218,6 @@ private:
 	ros::Publisher	 				pub_command_robot_real;
 	ros::Subscriber 				sub_position_robot;
 
-
 	void 						chatterCallback_position(const sensor_msgs::JointState & msg);
 	sKinematics                 *mSKinematicChain;
 
@@ -229,6 +228,23 @@ private:
 	ssize_t 					size;
 	struct termios 				options;
 
+	// For TCP/IP communication
+	int							sockfd;
+	struct 						sockaddr_in serv_addr;
+	struct 						sockaddr_in cli_addr;
+	struct 						sockaddr_in cli_adds;
+	socklen_t 					cli_len;
+	int							serverportno;  // port number here, of kuka laptop
+	int 						bytes2Write;
+	int 						bytes2Read;
+	float 						udpread[9]; // 1 float for bool array,  7 floats for target pos, 1 float for targetThreshold
+	int							udpreadsize;
+	// values sent to the matlab computer
+	float 						writeForcePos[14]; // 3d pos, 3d force, 1d rel_pos, 7d joint angles
+	// values collected from the matlab computer
+	float 						targetPosition[7]; // joint angles as sent from matlab
+	double 						tmptargetPosition[7]; // maybe clean this up later
+	bitset<32> 					trialStatus, lasttrialStatus; // these are bit0vals from train.m
 
 	// For file writing
 	ofstream 					myfile;
@@ -308,8 +324,6 @@ private:
 	Vector						cJointTORs;
 	Vector						JointEffort_handle;
 	Vector						eeForce;
-	Vector						eeForceCorrected;
-	Vector						eeForceCORRECT;
 	double 						eeForceMod;
 	int 						eeForceModInt;
 
@@ -367,17 +381,17 @@ private:
 	Vector3 					lTargetDirX;
 	Vector3						lTargetDirY;
 	Vector3 					lTargetDirZ;
-	Matrix 						JT;
-	Matrix 						temp_JJT;
-	Matrix						temp_JJTI;
 
 	double secs;
-	struct timeval t0, currentTime;
 	double Constant_joint;
-	float pullThreshold;
-	float timeout;
+	float 	timeout;
+	float targetThreshold;
+	bool 						waiting4robot;
+	bool						bool_plannercartesian, bool_plannerjoint;
+	float distance2target_x;
+
 };
 
 
 
-#endif 
+#endif

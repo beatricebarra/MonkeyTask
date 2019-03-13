@@ -1,8 +1,8 @@
 /*
- * Copyright (C) 2018 Swiss Primate Competence Center for Research, University of Fribourg, Switzerland
- * Author: Beatrice Barra
- * email:   beatrice.barra@unifr.ch
- * phone: + 41 26 300 87 69
+ * Copyright (C) 2010 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
+ * Author: Eric Sauser
+ * email:   eric.sauser@a3.epf.ch
+ * website: lasa.epfl.ch
  *
  * Permission is granted to copy, distribute, and/or modify this program
  * under the terms of the GNU General Public License, version 2 or any
@@ -14,10 +14,12 @@
  * Public License for more details
  */
 
+#ifndef monkeytaskSCI_H_
+#define monkeytaskSCI_H_
 
-#ifndef monkeytask_test_2_H_
-#define monkeytask_test_2_H_
+#include "RobotLib/RobotInterface.h"
 
+// NOn default
 #include "RobotLib/RobotInterface.h"
 #include "MathLib/MathLib.h"
 #include "MathLib/IKGroupSolver.h"
@@ -58,23 +60,11 @@
 #define _dt (1.0/500.)
 
 //Enums
-enum ENUM_COMMAND{COMMAND_2Position, COMMAND_spring, COMMAND_Back, COMMAND_Home, COMMAND_Wait4Go, NONE_comand};
+enum ENUM_COMMAND{COMMAND_2Position, COMMAND_spring, COMMAND_Back, COMMAND_Home, COMMAND_Wait4Go, COMMAND_Down, NONE_comand};
 enum ENUM_PLANNER{PLANNER_CARTESIAN, PLANNER_JOINT, NONE_planner};
 enum ENUM_AXIS{AXIS_X=0, AXIS_Y, AXIS_Z};
 
-
-
-//Global variables
-/*double P1[] = {6.3, 12.38, 4.34, -69.36, 104.19, -11.11, -97.61};
-double P2[] = {26.38, 13.28, 4.34, -74.36, 115.62, -27.38, -112.72};
-double P3[] = {30.68, 13.28, 4.35, -79.08, 75.88, -29.50, -68.70};
-double P4[] = {25.96, 32.57, 4.35, -104.19, 32.80, -43.93, -22.47};
-double P5[] = {-1.8, 49.67, 3.09, -91.85, -1.37, -60.46, -25.77};
-double P6[] = {6.56, 28.91, -25.29, -112.69, 148.33, 48.44, -146.40};
-double P7[] = {-54.95, 25.93, 45.84, -91.25, 108.02, 14.81, -127.92};
-double P8[] = {-54.66, 7.94, 45.85, -82.96, 46.75, 19.07, -51.08};*/
-
-
+// Sequences of positions
 std::ostringstream ss;
 
 double P0[] = {-0.66, 5.18, -1.76, -105.3, 0.55, -10.13, -0.40};
@@ -184,21 +174,19 @@ double ThreePointSequence[3][KUKA_DOF] = {
 		{-6.98, 6.91, -1.92, -102.82, -19.01, -19.19, 18.11},//W
 };
 
-/*double FixedPoint[1][KUKA_DOF] = {
-		{-1.25, 6.35, -1.92, -103.59, -1.33, -18.42, +1.49},//O
-};*/
 double FixedPoint[1][KUKA_DOF] = {
-		{14.02, 25.34, -16.44, -74.54, 12.98, -10.06, -4.54},//O
-};
-double FixedPointBack[1][KUKA_DOF] = {
-		{-2.82, -10.03, -1.2, -101.73, -7.87, -13.43, +8.16},//O
+		{3, 20.09, 0.1, -79.59, 0, -8.68, -8.45},//O
 };
 
-class monkeytask_test_2 : public RobotInterface
+double FixedPointBack[1][KUKA_DOF] = {
+		{3, 5.56, 0.1, -100.28, 0, -15.61, -8.45},//O
+};
+
+class monkeytaskSCI : public RobotInterface
 {
 public:
-            monkeytask_test_2();
-    virtual ~monkeytask_test_2();
+            monkeytaskSCI();
+    virtual ~monkeytaskSCI();
   
     virtual Status              RobotInit();
     virtual Status              RobotFree();
@@ -370,12 +358,13 @@ private:
 	Matrix 						JT;
 	Matrix 						temp_JJT;
 	Matrix						temp_JJTI;
-
 	double secs;
 	struct timeval t0, currentTime;
 	double Constant_joint;
 	float pullThreshold;
 	float timeout;
+
+
 };
 
 
