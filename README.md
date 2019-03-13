@@ -5,7 +5,7 @@
 
 Don't forget to add the setup.bash files in the ~/.bashrc file!
 
-Set-up teh ssh key:
+Set-up the ssh key:
 Follow this link:
 https://help.github.com/en/enterprise/2.16/user/articles/connecting-to-github-with-ssh
 
@@ -34,7 +34,7 @@ If you get an error saying that
  #include "kuka_fri_bridge/JointStateImpedance.h"
                                                  ^
 ```
-Don't worry. Repeat the following steps agian, mayble close and open the terminal also!
+Don't worry. Repeat the following steps again, maybe close and open the terminal also!
 ```
 rospack profile
 catkin_make
@@ -61,7 +61,7 @@ cd ../src/MonkeyTask/miscellaneous/robot-toolkit/
 "SlowMovementApplication" is the name of your package!
  stop the robot before turning off.
 
-# How to set-up eclise:
+# How to set-up eclpise:
 ```
 cd ~/catkin_ws
 catkin_make --force-cmake -G"Eclipse CDT4 - Unix Makefiles"
