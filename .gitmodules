@@ -1,0 +1,18 @@
+[submodule "robot-kinematics"]
+	path = miscellaneous/robot-kinematics
+	url = git@github.com:epfl-lasa/robot-kinematics.git
+[submodule "robot-toolkit"]
+	path = miscellaneous/robot-toolkit
+	url = git@github.com:epfl-lasa/robot-toolkit.git
+[submodule "motion-generators"]
+	path = miscellaneous/motion-generators
+	url = git@github.com:epfl-lasa/motion-generators.git
+[submodule "sg_differentiation"]
+	path = miscellaneous/sg_differentiation
+	url = git@github.com:epfl-lasa/sg_differentiation.git
+[submodule "fri-iiwa-interface"]
+	path = robot_interface/fri-iiwa-interface
+	url = git@github.com:epfl-lasa/fri-iiwa-interface.git
+[submodule "kuka_interface_packages"]
+	path = robot_interface/kuka_interface_packages
+	url = https://github.com/nbfigueroa/kuka_interface_packages.git
